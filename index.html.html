@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎈 הושעיה — כלי הצעות מחיר</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap');
+
+  :root {
+    --bg: #0f0f13;
+    --surface: #1a1a22;
+    --surface2: #22222d;
+    --border: #2e2e3d;
+    --accent: #7c5cfc;
+    --accent2: #fc5c8a;
+    --gold: #f5c842;
+    --text: #f0f0f5;
+    --text2: #9090aa;
+    --green: #42d68a;
+    --radius: 14px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Heebo', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 16px;
+  }
+
+  header {
+    text-align: center;
+    padding: 24px 0 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+
+  header h1 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  header p { color: var(--text2); font-size: 0.85rem; margin-top: 4px; }
+
+  .tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    background: var(--surface);
+    padding: 6px;
+    border-radius: var(--radius);
+  }
+
+  .tab {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Heebo', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+    color: var(--text2);
+  }
+
+  .tab.active {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: white;
+  }
+
+  .section { display: none; }
+  .section.active { display: block; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+
+  .card-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+
+  label {
+    display: block;
+    font-size: 0.82rem;
+    color: var(--text2);
+    margin-bottom: 5px;
+    margin-top: 10px;
+  }
+
+  label:first-of-type { margin-top: 0; }
+
+  input, select, textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: 'Heebo', sans-serif;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent);
+  }
+
+  select option { background: var(--surface2); }
+
+  .items-section { margin-top: 4px; }
+
+  .item-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+  }
+
+  .item-row select {
+    flex: 2;
+    background: transparent;
+    border: none;
+    padding: 4px 0;
+    font-size: 0.85rem;
+  }
+
+  .item-row input {
+    width: 60px;
+    flex-shrink: 0;
+    background: transparent;
+    border: none;
+    text-align: center;
+    padding: 4px 0;
+    font-size: 0.85rem;
+  }
+
+  .item-price {
+    font-weight: 700;
+    color: var(--gold);
+    font-size: 0.85rem;
+    min-width: 55px;
+    text-align: left;
+  }
+
+  .remove-btn {
+    background: none;
+    border: none;
+    color: var(--accent2);
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 0 2px;
+    line-height: 1;
+  }
+
+  .add-item-btn {
+    width: 100%;
+    padding: 9px;
+    background: var(--surface2);
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    color: var(--text2);
+    font-family: 'Heebo', sans-serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 4px;
+  }
+
+  .add-item-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .total-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, rgba(124,92,252,0.15), rgba(252,92,138,0.1));
+    border: 1px solid rgba(124,92,252,0.3);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 14px;
+  }
+
+  .total-label { font-size: 0.9rem; color: var(--text2); }
+
+  .total-amount {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--gold);
+  }
+
+  .discount-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .discount-row label {
+    margin: 0;
+    white-space: nowrap;
+    font-size: 0.85rem;
+  }
+
+  .discount-row input {
+    width: 80px;
+    flex-shrink: 0;
+  }
+
+  .discount-tag {
+    background: rgba(242,200,66,0.15);
+    color: var(--gold);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+
+  .btn {
+    width: 100%;
+    padding: 13px;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Heebo', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 10px;
+  }
+
+  .btn-whatsapp {
+    background: #25D366;
+    color: white;
+  }
+
+  .btn-invoice {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: white;
+  }
+
+  .btn-copy {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .btn:active { transform: scale(0.97); }
+
+  .preview-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    font-size: 0.85rem;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    direction: rtl;
+    margin-bottom: 14px;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+
+  .status-msg {
+    text-align: center;
+    padding: 10px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    display: none;
+  }
+
+  .status-msg.success { background: rgba(66,214,138,0.15); color: var(--green); display: block; }
+  .status-msg.error { background: rgba(252,92,138,0.15); color: var(--accent2); display: block; }
+  .status-msg.loading { background: rgba(124,92,252,0.15); color: var(--accent); display: block; }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+  }
+
+  .toggle-label { font-size: 0.88rem; }
+
+  .toggle {
+    width: 44px;
+    height: 24px;
+    background: var(--border);
+    border-radius: 12px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+
+  .toggle.on { background: var(--accent); }
+
+  .toggle::after {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    background: white;
+    border-radius: 50%;
+    top: 3px;
+    right: 3px;
+    transition: transform 0.2s;
+  }
+
+  .toggle.on::after { transform: translateX(-20px); }
+
+  .history-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+
+  .history-item:hover { border-color: var(--accent); }
+
+  .history-name { font-weight: 700; font-size: 0.9rem; }
+  .history-details { font-size: 0.78rem; color: var(--text2); margin-top: 3px; }
+  .history-amount { color: var(--gold); font-weight: 700; font-size: 0.88rem; }
+
+  .empty-state {
+    text-align: center;
+    color: var(--text2);
+    padding: 30px;
+    font-size: 0.88rem;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 12px 0;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎈 הושעיה אמן בלונים</h1>
+  <p>כלי הצעות מחיר ודרישות תשלום</p>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('quote')">📋 הצעת מחיר</button>
+  <button class="tab" onclick="switchTab('parse')">📲 הדבק שיחה</button>
+  <button class="tab" onclick="switchTab('history')">📁 היסטוריה</button>
+</div>
+
+<!-- QUOTE SECTION -->
+<div id="quote" class="section active">
+
+  <div class="card">
+    <div class="card-title">פרטי לקוח</div>
+    <label>שם לקוח</label>
+    <input type="text" id="clientName" placeholder="ישראל ישראלי" />
+    <label>טלפון</label>
+    <input type="tel" id="clientPhone" placeholder="050-0000000" />
+    <label>סוג אירוע</label>
+    <select id="eventType">
+      <option value="">בחר סוג אירוע...</option>
+      <option value="ברית מילה">ברית מילה</option>
+      <option value="בר/בת מצווה">בר/בת מצווה</option>
+      <option value="יום הולדת">יום הולדת</option>
+      <option value="חתונה">חתונה</option>
+      <option value="קייטנה/בית ספר">קייטנה/בית ספר</option>
+      <option value="עמותה/מוסד">עמותה/מוסד</option>
+      <option value="אחר">אחר</option>
+    </select>
+    <label>תאריך אירוע</label>
+    <input type="date" id="eventDate" />
+    <label>מרחק (ק"מ לכיוון אחד)</label>
+    <input type="number" id="distance" placeholder="0 = ביישוב" value="0" min="0" />
+    <div class="toggle-row" style="margin-top:12px;">
+      <span class="toggle-label">🏘️ תושב/ת היישוב</span>
+      <div class="toggle" id="localToggle" onclick="toggleLocal()"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">פריטי הזמנה</div>
+    <div id="itemsList"></div>
+    <button class="add-item-btn" onclick="addItem()">+ הוסף פריט</button>
+  </div>
+
+  <div class="total-bar">
+    <div>
+      <div class="total-label">סה"כ לתשלום</div>
+      <div id="travelCost" style="font-size:0.75rem;color:var(--text2);margin-top:2px;"></div>
+    </div>
+    <div class="total-amount" id="totalAmount">0 ₪</div>
+  </div>
+
+  <div class="discount-row">
+    <label>הנחה (%)</label>
+    <input type="number" id="discountPct" value="0" min="0" max="100" onchange="calcTotal()" />
+    <span class="discount-tag" id="discountTag" style="display:none"></span>
+  </div>
+  <div id="discountReasonRow" style="display:none; margin-bottom:14px;">
+    <label style="color:var(--text2);font-size:0.82rem;margin-bottom:5px;display:block;">סיבת ההנחה (תופיע ללקוח)</label>
+    <input type="text" id="discountReason" placeholder='למשל: "הנחת תושב יישוב" / "לקוח חוזר"' oninput="updatePreview()" />
+  </div>
+
+  <div class="card">
+    <div class="card-title">תצוגה מקדימה — וואטסאפ</div>
+    <div class="preview-box" id="waPreview">מלא את הפרטים למעלה...</div>
+    <button class="btn btn-copy" onclick="copyWA()">📋 העתק לוואטסאפ</button>
+    <button class="btn btn-whatsapp" onclick="openWA()">📲 פתח וואטסאפ</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">דרישת תשלום — Morning</div>
+    <div id="invoiceStatus" class="status-msg"></div>
+    <button class="btn btn-invoice" onclick="sendInvoice()">🧾 שלח דרישת תשלום</button>
+  </div>
+
+</div>
+
+<!-- PARSE SECTION -->
+<div id="parse" class="section">
+
+  <div class="card">
+    <div class="card-title">🎙️ הקלטת שיחה</div>
+    <div style="text-align:center;padding:10px 0;">
+      <button id="recordBtn" class="btn btn-invoice" style="width:auto;padding:14px 32px;font-size:1rem;border-radius:50px;" onclick="toggleRecording()">
+        🎙️ התחל הקלטה
+      </button>
+      <div id="recordTimer" style="color:var(--accent2);font-size:0.9rem;margin-top:8px;font-weight:700;display:none;">⏺ 00:00</div>
+      <div id="recordStatus" style="color:var(--text2);font-size:0.8rem;margin-top:6px;"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📲 או הדבק שיחת טקסט</div>
+    <textarea id="chatInput" rows="7" placeholder="הדבק כאן שיחת וואטסאפ...&#10;&#10;לדוגמה:&#10;לקוחה: שלום, אני רוצה עיצוב לברית&#10;הושעיה: כמה שולחנות?&#10;לקוחה: 10 שולחנות וגם שער" style="resize:vertical;line-height:1.6;font-family:Heebo,sans-serif;"></textarea>
+  </div>
+
+  <div id="parseStatus" class="status-msg"></div>
+  <button class="btn btn-invoice" onclick="parseChat()">🤖 נתח וצור הצעת מחיר</button>
+
+  <div id="parseResult" style="display:none;">
+    <div class="card" style="border-color:rgba(124,92,252,0.4);">
+      <div class="card-title">✅ זוהה מהשיחה</div>
+      <div id="parsedSummary" style="font-size:0.88rem;line-height:1.9;"></div>
+    </div>
+    <button class="btn btn-whatsapp" onclick="applyParsed()">➡️ העבר להצעת מחיר</button>
+  </div>
+</div>
+
+<!-- HISTORY SECTION -->
+<div id="history" class="section">
+  <div class="card">
+    <div class="card-title">הצעות אחרונות</div>
+    <div id="historyList"><div class="empty-state">אין היסטוריה עדיין</div></div>
+  </div>
+</div>
+
+<script>
+const API_KEY = '58854R0q&Q.^*sVu6zW+4h7NzUFB[1sP';
+const API_ID = '24d79387-483a-4678-99a5-b888c3761c49';
+const MORNING_API = 'https://api.greeninvoice.co.il/api/v1';
+
+let isLocal = false;
+let items = [];
+let history = JSON.parse(localStorage.getItem('hoshaya_history') || '[]');
+
+const PRICE_LIST = {
+  // עיצוב שולחנות
+  'שולחן בסיסי (3 בלונים+בסיס)': { base: 30, unit: 'שולחן' },
+  'שולחן מורחב': { base: 70, unit: 'שולחן' },
+  'שולחן פרימיום': { base: 120, unit: 'שולחן' },
+  // תוספות עיצוב
+  'חישוק בלונים': { base: 800, local: 600, unit: 'יח\'' },
+  'חישוק בלונים עם במות': { base: 1200, local: 900, unit: 'יח\'' },
+  'שער כניסה': { base: 600, local: 400, unit: 'יח\'' },
+  'עמוד בלונים': { base: 150, unit: 'עמוד' },
+  'פינת צילום מלאה': { base: 1200, unit: 'יח\'' },
+  'מסגרת': { base: 400, unit: 'יח\'' },
+  // הפעלות
+  'בר בלונים (שעה אחת)': { base: 800, unit: 'שעה' },
+  'בר בלונים (2+ שעות)': { base: 600, unit: 'שעה' },
+  'מפעיל שני': { base: 600, unit: 'שעה' },
+  'קרנבל כובעים 60 כובעים': { base: 1300, unit: 'אירוע' },
+  'קרנבל כובעים 100 כובעים': { base: 2100, unit: 'אירוע' },
+  // עיצוב חדרים
+  'עיצוב חדר Standard': { base: 500, unit: 'אירוע' },
+  'עיצוב חדר Deluxe': { base: 750, unit: 'אירוע' },
+  'עיצוב חדר VIP': { base: 1000, unit: 'אירוע' },
+  // סדנאות
+  'סדנה חד-פעמית': { base: 700, unit: 'סדנה' },
+  'סדנת יום הולדת': { base: 700, unit: 'סדנה' },
+  'מפגש קורס בלונים': { base: 400, unit: 'מפגש' },
+  // חנות
+  'בלון לטקס + הליום': { base: 5, unit: 'יח\'' },
+  'מיילר לב 18" הליום': { base: 10, unit: 'יח\'' },
+  'מיילר לב 18" + כיתוב הליום': { base: 20, unit: 'יח\'' },
+  'מיילר לב 18" + תמונה הליום': { base: 40, unit: 'יח\'' },
+  'מיילר 22" הליום': { base: 25, unit: 'יח\'' },
+  'מיילר מספר קטן + בסיס': { base: 15, unit: 'ספרה' },
+};
+
+function switchTab(tab) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(tab).classList.add('active');
+  event.target.classList.add('active');
+  if (tab === 'history') renderHistory();
+}
+
+function toggleLocal() {
+  isLocal = !isLocal;
+  document.getElementById('localToggle').classList.toggle('on', isLocal);
+  if (isLocal) {
+    document.getElementById('discountPct').value = 25;
+    document.getElementById('discountTag').textContent = 'הנחת תושב 25%';
+    document.getElementById('discountTag').style.display = 'inline';
+    document.getElementById('discountReasonRow').style.display = 'block';
+    document.getElementById('discountReason').value = 'הנחת תושב/ת יישוב בית חוגלה';
+  } else {
+    document.getElementById('discountPct').value = 0;
+    document.getElementById('discountTag').style.display = 'none';
+    document.getElementById('discountReasonRow').style.display = 'none';
+    document.getElementById('discountReason').value = '';
+  }
+  calcTotal();
+}
+
+function addItem() {
+  const id = Date.now();
+  items.push({ id, name: '', qty: 1, price: 0 });
+  renderItems();
+}
+
+function removeItem(id) {
+  items = items.filter(i => i.id !== id);
+  renderItems();
+  calcTotal();
+}
+
+function renderItems() {
+  const list = document.getElementById('itemsList');
+  if (items.length === 0) {
+    list.innerHTML = '<div style="color:var(--text2);font-size:0.82rem;text-align:center;padding:8px;">לחץ + להוסיף פריט</div>';
+    return;
+  }
+  list.innerHTML = items.map(item => `
+    <div class="item-row">
+      <select onchange="updateItem(${item.id}, 'name', this.value)">
+        <option value="">בחר פריט...</option>
+        ${Object.keys(PRICE_LIST).map(k => `<option value="${k}" ${item.name===k?'selected':''}>${k}</option>`).join('')}
+      </select>
+      <input type="number" value="${item.qty}" min="1" style="width:50px"
+        onchange="updateItem(${item.id}, 'qty', this.value)" />
+      <span class="item-price">${item.price > 0 ? item.price+'₪' : ''}</span>
+      <button class="remove-btn" onclick="removeItem(${item.id})">✕</button>
+    </div>
+  `).join('');
+}
+
+function updateItem(id, field, value) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  item[field] = field === 'qty' ? parseInt(value) || 1 : value;
+  if (item.name && PRICE_LIST[item.name]) {
+    const p = PRICE_LIST[item.name];
+    const basePrice = (isLocal && p.local) ? p.local : p.base;
+    item.price = basePrice * item.qty;
+  }
+  renderItems();
+  calcTotal();
+}
+
+function calcTotal() {
+  const dist = parseFloat(document.getElementById('distance').value) || 0;
+  const travel = dist * 2 * 1.5;
+  const itemsTotal = items.reduce((s, i) => s + (i.price || 0), 0);
+  const disc = parseFloat(document.getElementById('discountPct').value) || 0;
+  const afterDisc = itemsTotal * (1 - disc/100);
+  const total = afterDisc + travel;
+
+  document.getElementById('totalAmount').textContent = Math.round(total) + ' ₪';
+
+  if (travel > 0) {
+    document.getElementById('travelCost').textContent = `כולל נסיעות: ${Math.round(travel)}₪ (${dist} ק"מ × 2 × 1.5₪)`;
+  } else {
+    document.getElementById('travelCost').textContent = 'ללא נסיעות (ביישוב)';
+  }
+
+  if (disc > 0) {
+    document.getElementById('discountTag').textContent = `הנחה ${disc}% = -${Math.round(itemsTotal * disc/100)}₪`;
+    document.getElementById('discountTag').style.display = 'inline';
+    document.getElementById('discountReasonRow').style.display = 'block';
+  } else {
+    document.getElementById('discountTag').style.display = 'none';
+    document.getElementById('discountReasonRow').style.display = 'none';
+    document.getElementById('discountReason').value = '';
+  }
+
+  updatePreview();
+  return Math.round(total);
+}
+
+function updatePreview() {
+  const name = document.getElementById('clientName').value || 'הלקוח';
+  const event = document.getElementById('eventType').value || 'האירוע';
+  const date = document.getElementById('eventDate').value;
+  const total = calcTotalNum();
+  const dist = parseFloat(document.getElementById('distance').value) || 0;
+  const travel = dist > 0 ? Math.round(dist * 2 * 1.5) : 0;
+
+  const disc = parseFloat(document.getElementById('discountPct').value) || 0;
+  const discReason = document.getElementById('discountReason').value.trim();
+  const itemsTotal = items.reduce((s, i) => s + (i.price || 0), 0);
+  const discAmount = Math.round(itemsTotal * disc / 100);
+
+  let itemLines = items.filter(i => i.name).map(i => `• ${i.name} × ${i.qty} — ${i.price}₪`).join('\n');
+  if (!itemLines) itemLines = '• (לא נבחרו פריטים)';
+
+  const dateStr = date ? new Date(date).toLocaleDateString('he-IL') : '';
+
+  let discountLine = '';
+  if (disc > 0) {
+    const reasonText = discReason ? discReason : `הנחה ${disc}%`;
+    discountLine = `\n🎁 ${reasonText}: -${discAmount}₪`;
+  }
+
+  const msg = `שלום ${name} 😊🎈
+
+הצעת מחיר עבור ${event}${dateStr ? ' — ' + dateStr : ''}:
+
+${itemLines}${travel > 0 ? '\n• נסיעות — ' + travel + '₪' : ''}${discountLine}
+
+*סה"כ לתשלום: ${total}₪*
+
+התשלום ב-Bit / Paybox / צ'ק
+📞 050-5918734 | הושעיה אמן בלונים`;
+
+  document.getElementById('waPreview').textContent = msg;
+}
+
+function calcTotalNum() {
+  const dist = parseFloat(document.getElementById('distance').value) || 0;
+  const travel = dist * 2 * 1.5;
+  const itemsTotal = items.reduce((s, i) => s + (i.price || 0), 0);
+  const disc = parseFloat(document.getElementById('discountPct').value) || 0;
+  return Math.round(itemsTotal * (1 - disc/100) + travel);
+}
+
+function copyWA() {
+  const text = document.getElementById('waPreview').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    showInvoiceStatus('✅ הועתק! הדבק בוואטסאפ', 'success');
+  });
+}
+
+function openWA() {
+  const phone = document.getElementById('clientPhone').value.replace(/\D/g,'');
+  const text = encodeURIComponent(document.getElementById('waPreview').textContent);
+  const url = phone
+    ? `https://wa.me/972${phone.replace(/^0/,'')}?text=${text}`
+    : `https://wa.me/?text=${text}`;
+  window.open(url, '_blank');
+}
+
+async function getToken() {
+  const res = await fetch(`${MORNING_API}/account/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: API_ID, secret: API_KEY })
+  });
+  const data = await res.json();
+  return data.token;
+}
+
+async function sendInvoice() {
+  const name = document.getElementById('clientName').value;
+  const phone = document.getElementById('clientPhone').value;
+  const total = calcTotalNum();
+
+  if (!name || total <= 0) {
+    showInvoiceStatus('⚠️ נא למלא שם לקוח וסכום', 'error');
+    return;
+  }
+
+  showInvoiceStatus('⏳ שולח דרישת תשלום...', 'loading');
+
+  try {
+    const token = await getToken();
+
+    const itemsForInvoice = items.filter(i => i.name && i.price > 0).map(i => ({
+      description: i.name,
+      quantity: i.qty,
+      price: PRICE_LIST[i.name] ? (isLocal && PRICE_LIST[i.name].local ? PRICE_LIST[i.name].local : PRICE_LIST[i.name].base) : i.price,
+      vatType: 0
+    }));
+
+    const dist = parseFloat(document.getElementById('distance').value) || 0;
+    const travel = Math.round(dist * 2 * 1.5);
+    if (travel > 0) {
+      itemsForInvoice.push({ description: 'נסיעות', quantity: 1, price: travel, vatType: 0 });
+    }
+
+    const payload = {
+      description: document.getElementById('eventType').value || 'שירותי בלונים',
+      type: 320,
+      lang: 'he',
+      currency: 'ILS',
+      vatType: 0,
+      discount: 0,
+      client: {
+        name,
+        phones: phone ? [{ phone }] : [],
+        add: true
+      },
+      income: itemsForInvoice,
+      remarks: 'תשלום ב-Bit / Paybox / צ\'ק\nהושעיה אמן בלונים | 050-5918734'
+    };
+
+    const res = await fetch(`${MORNING_API}/documents`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+
+    if (data.id) {
+      showInvoiceStatus(`✅ דרישת תשלום נשלחה! מספר: ${data.number || data.id}`, 'success');
+      saveHistory(name, total, data.id);
+    } else {
+      showInvoiceStatus(`❌ שגיאה: ${data.message || JSON.stringify(data)}`, 'error');
+    }
+  } catch(e) {
+    showInvoiceStatus(`❌ שגיאת חיבור: ${e.message}`, 'error');
+  }
+}
+
+function showInvoiceStatus(msg, type) {
+  const el = document.getElementById('invoiceStatus');
+  el.textContent = msg;
+  el.className = `status-msg ${type}`;
+}
+
+function saveHistory(name, total, invoiceId) {
+  const event = document.getElementById('eventType').value;
+  const date = new Date().toLocaleDateString('he-IL');
+  history.unshift({ name, total, event, date, invoiceId, items: [...items] });
+  if (history.length > 50) history.pop();
+  localStorage.setItem('hoshaya_history', JSON.stringify(history));
+}
+
+// ========== הקלטת קול ==========
+let mediaRecorder = null;
+let audioChunks = [];
+let recordInterval = null;
+let recordSeconds = 0;
+let isRecording = false;
+
+async function toggleRecording() {
+  if (isRecording) {
+    stopRecording();
+  } else {
+    startRecording();
+  }
+}
+
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioChunks = [];
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.onstop = handleRecordingStop;
+    mediaRecorder.start();
+    isRecording = true;
+    recordSeconds = 0;
+
+    const btn = document.getElementById('recordBtn');
+    btn.textContent = '⏹️ עצור הקלטה';
+    btn.style.background = 'var(--accent2)';
+    document.getElementById('recordTimer').style.display = 'block';
+    document.getElementById('recordStatus').textContent = 'מקליט... דבר עכשיו';
+
+    recordInterval = setInterval(() => {
+      recordSeconds++;
+      const m = String(Math.floor(recordSeconds/60)).padStart(2,'0');
+      const s = String(recordSeconds%60).padStart(2,'0');
+      document.getElementById('recordTimer').textContent = `⏺ ${m}:${s}`;
+    }, 1000);
+
+  } catch(e) {
+    document.getElementById('recordStatus').textContent = '❌ לא ניתן לגשת למיקרופון — אפשר הרשאה בדפדפן';
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+    mediaRecorder.stream.getTracks().forEach(t => t.stop());
+  }
+  clearInterval(recordInterval);
+  isRecording = false;
+  const btn = document.getElementById('recordBtn');
+  btn.textContent = '🎙️ התחל הקלטה';
+  btn.style.background = '';
+  document.getElementById('recordTimer').style.display = 'none';
+  document.getElementById('recordStatus').textContent = '⏳ מעבד הקלטה...';
+}
+
+async function handleRecordingStop() {
+  const blob = new Blob(audioChunks, { type: 'audio/webm' });
+  const base64 = await blobToBase64(blob);
+
+  showParseStatus('⏳ מתמלל הקלטה...', 'loading');
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'תמלל את ההקלטה הזו לעברית. החזר רק את הטקסט המתומלל, ללא הסברים.'
+            },
+            {
+              type: 'document',
+              source: { type: 'base64', media_type: 'audio/webm', data: base64 }
+            }
+          ]
+        }]
+      })
+    });
+    const data = await res.json();
+    const transcribed = data.content?.[0]?.text || '';
+
+    if (transcribed) {
+      document.getElementById('chatInput').value = transcribed;
+      document.getElementById('recordStatus').textContent = '✅ תומלל! בדוק את הטקסט למטה';
+      showParseStatus('✅ תומלל בהצלחה — לחץ נתח', 'success');
+    } else {
+      // נסה ניתוח ישיר מהאודיו
+      document.getElementById('recordStatus').textContent = '⚠️ תמלול לא הצליח — מנתח ישירות';
+      await parseAudioDirect(base64);
+    }
+  } catch(e) {
+    showParseStatus(`❌ שגיאה: ${e.message}`, 'error');
+    document.getElementById('recordStatus').textContent = '';
+  }
+}
+
+async function parseAudioDirect(base64) {
+  const priceListStr = Object.entries(PRICE_LIST).map(([k,v]) => `- ${k}: ${v.base}₪`).join('\n');
+  showParseStatus('⏳ מנתח שיחה מוקלטת...', 'loading');
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: `אתה עוזר של הושעיה, אמן בלונים. תמלל את השיחה המוקלטת וחלץ מידע להצעת מחיר.
+המחירון: ${priceListStr}
+החזר JSON בלבד: {"clientName":"","clientPhone":"","eventType":"","eventDate":"","distanceKm":0,"isLocal":false,"items":[{"name":"","qty":1}],"notes":""}`
+            },
+            {
+              type: 'document',
+              source: { type: 'base64', media_type: 'audio/webm', data: base64 }
+            }
+          ]
+        }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.[0]?.text || '';
+    processParseResult(text);
+  } catch(e) {
+    showParseStatus(`❌ שגיאה: ${e.message}`, 'error');
+  }
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result.split(',')[1]);
+    reader.readAsDataURL(blob);
+  });
+}
+
+// ========== ניתוח טקסט ==========
+let parsedData = null;
+
+async function parseChat() {
+  const chat = document.getElementById('chatInput').value.trim();
+  if (!chat) {
+    showParseStatus('⚠️ אנא הדבק שיחה או הקלט', 'error');
+    return;
+  }
+  showParseStatus('⏳ מנתח שיחה...', 'loading');
+  document.getElementById('parseResult').style.display = 'none';
+
+  const priceListStr = Object.entries(PRICE_LIST).map(([k,v]) => `- ${k}: ${v.base}₪`).join('\n');
+  const prompt = `אתה עוזר של הושעיה, אמן בלונים מבית חוגלה.
+המחירון שלו:
+${priceListStr}
+- נסיעות: 1.5₪/ק"מ לוך וחזור
+- תושבי בית חוגלה: הנחה 25% על חישוק ושער
+
+קרא את השיחה הבאה וחלץ מידע להצעת מחיר.
+החזר JSON בלבד (ללא markdown):
+{"clientName":"","clientPhone":"","eventType":"","eventDate":"","distanceKm":0,"isLocal":false,"items":[{"name":"","qty":1}],"notes":""}
+חשוב: שמות הפריטים חייבים להיות בדיוק מהמחירון.
+
+השיחה:
+${chat}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    processParseResult(data.content?.[0]?.text || '');
+  } catch(e) {
+    showParseStatus(`❌ שגיאה: ${e.message}`, 'error');
+  }
+}
+
+function processParseResult(text) {
+  try {
+    const clean = text.replace(/```json|```/g, '').trim();
+    parsedData = JSON.parse(clean);
+
+    parsedData.items = (parsedData.items || []).map(item => {
+      const p = PRICE_LIST[item.name];
+      if (p) {
+        const basePrice = (parsedData.isLocal && p.local) ? p.local : p.base;
+        return { ...item, price: basePrice * item.qty };
+      }
+      return { ...item, price: 0 };
+    });
+
+    const dist = parsedData.distanceKm || 0;
+    const travel = Math.round(dist * 2 * 1.5);
+    const itemsTotal = parsedData.items.reduce((s,i) => s + (i.price||0), 0);
+    const total = itemsTotal + travel;
+
+    let summaryHtml = '';
+    if (parsedData.clientName) summaryHtml += `👤 <b>שם:</b> ${parsedData.clientName}<br>`;
+    if (parsedData.clientPhone) summaryHtml += `📞 <b>טלפון:</b> ${parsedData.clientPhone}<br>`;
+    if (parsedData.eventType) summaryHtml += `🎉 <b>אירוע:</b> ${parsedData.eventType}<br>`;
+    if (parsedData.eventDate) summaryHtml += `📅 <b>תאריך:</b> ${new Date(parsedData.eventDate).toLocaleDateString('he-IL')}<br>`;
+    if (dist > 0) summaryHtml += `🚗 <b>נסיעות:</b> ${dist} ק"מ = ${travel}₪<br>`;
+    if (parsedData.isLocal) summaryHtml += `🏘️ <b>תושב/ת יישוב</b> — הנחה 25%<br>`;
+    summaryHtml += '<br>';
+    parsedData.items.forEach(i => {
+      if (i.name) summaryHtml += `• ${i.name} × ${i.qty} — <b>${i.price}₪</b><br>`;
+    });
+    summaryHtml += `<br>💰 <b style="color:var(--gold)">סה"כ: ${total}₪</b>`;
+    if (parsedData.notes) summaryHtml += `<br><br>📝 <b>הערות:</b> ${parsedData.notes}`;
+
+    document.getElementById('parsedSummary').innerHTML = summaryHtml;
+    document.getElementById('parseResult').style.display = 'block';
+    showParseStatus('✅ נותח בהצלחה!', 'success');
+  } catch(e) {
+    showParseStatus(`❌ לא הצלחתי לנתח: ${e.message}`, 'error');
+  }
+}
+
+function applyParsed() {
+  if (!parsedData) return;
+
+  // מלא פרטי לקוח
+  if (parsedData.clientName) document.getElementById('clientName').value = parsedData.clientName;
+  if (parsedData.clientPhone) document.getElementById('clientPhone').value = parsedData.clientPhone;
+  if (parsedData.eventType) document.getElementById('eventType').value = parsedData.eventType;
+  if (parsedData.eventDate) document.getElementById('eventDate').value = parsedData.eventDate;
+  if (parsedData.distanceKm) document.getElementById('distance').value = parsedData.distanceKm;
+
+  // תושב יישוב
+  if (parsedData.isLocal !== isLocal) toggleLocal();
+
+  // פריטים
+  items = parsedData.items.filter(i => i.name).map((i, idx) => ({
+    id: Date.now() + idx,
+    name: i.name,
+    qty: i.qty,
+    price: i.price
+  }));
+
+  renderItems();
+  calcTotal();
+
+  // עבור לטאב הצעת מחיר
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('quote').classList.add('active');
+  document.querySelectorAll('.tab')[0].classList.add('active');
+}
+
+function showParseStatus(msg, type) {
+  const el = document.getElementById('parseStatus');
+  el.textContent = msg;
+  el.className = `status-msg ${type}`;
+}
+
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  if (history.length === 0) {
+    list.innerHTML = '<div class="empty-state">אין היסטוריה עדיין</div>';
+    return;
+  }
+  list.innerHTML = history.map((h, i) => `
+    <div class="history-item">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="history-name">${h.name}</div>
+        <div class="history-amount">${h.total}₪</div>
+      </div>
+      <div class="history-details">${h.event || ''} · ${h.date} · מסמך ${h.invoiceId || 'טיוטה'}</div>
+    </div>
+  `).join('');
+}
+
+// init
+document.querySelectorAll('input').forEach(i => {
+  i.addEventListener('input', () => { calcTotal(); updatePreview(); });
+});
+document.querySelectorAll('select').forEach(s => {
+  s.addEventListener('change', updatePreview);
+});
+renderItems();
+calcTotal();
+</script>
+</body>
+</html>
