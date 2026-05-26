@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>הושעיה אמן בלונים - הצעות מחיר ומלאי</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: #333;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      overflow: hidden;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+    
+    .header h1 { font-size: 28px; margin-bottom: 8px; }
+    .header p { font-size: 14px; opacity: 0.9; }
+    
+    .tabs {
+      display: flex;
+      border-bottom: 2px solid #eee;
+      background: #f8f9fa;
+    }
+    
+    .tab-btn {
+      flex: 1;
+      padding: 15px;
+      background: none;
+      border: none;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      color: #666;
+      transition: all 0.3s;
+      border-bottom: 3px solid transparent;
+    }
+    
+    .tab-btn.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+      background: white;
+    }
+    
+    .tab-content {
+      display: none;
+      padding: 30px;
+    }
+    
+    .tab-content.active { display: block; }
+    
+    input, textarea, select {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+    
+    button {
+      background: #667eea;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+    
+    button:hover { background: #5568d3; }
+    
+    .alert {
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+    
+    .alert.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .alert.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .alert.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    
+    th, td {
+      padding: 12px;
+      text-align: right;
+      border-bottom: 1px solid #eee;
+    }
+    
+    th { background: #f8f9fa; font-weight: 600; color: #333; }
+    
+    .price-table {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+    }
+    
+    .inventory-item {
+      background: #f8f9fa;
+      padding: 12px;
+      margin-bottom: 10px;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎈 הושעיה אמן בלונים</h1>
+      <p>עיצובים בלתי נשכחים | 050-5918734</p>
+    </div>
+    
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="quotes">📋 הצעת מחיר</button>
+      <button class="tab-btn" data-tab="inventory">📦 מלאי</button>
+      <button class="tab-btn" data-tab="chat">📲 הדבק שיחה</button>
+      <button class="tab-btn" data-tab="history">📁 היסטוריה</button>
+    </div>
+    
+    <!-- TAB: QUOTES -->
+    <div id="quotes" class="tab-content active">
+      <h2>יצירת הצעת מחיר</h2>
+      
+      <div class="price-table">
+        <strong>מחירון מהיר:</strong><br>
+        שולחן (30/70/120₪) | חישוק (800₪) | שער (600₪) | בר בלונים (800₪/שעה)
+      </div>
+      
+      <input type="text" id="clientName" placeholder="שם הלקוח" required>
+      <input type="tel" id="clientPhone" placeholder="טלפון">
+      <input type="email" id="clientEmail" placeholder="אימייל">
+      
+      <textarea id="quoteItems" placeholder="פרטי ההזמנה (לדוגמה: שולחן בסיסי + חישוק בלונים)" rows="4"></textarea>
+      
+      <input type="number" id="quotePrice" placeholder="סה״כ מחיר (₪)" min="0">
+      
+      <div style="display: flex; gap: 10px;">
+        <button onclick="saveQuote()">💾 שמור הצעה</button>
+        <button onclick="downloadQuote()">📥 הוריד PDF</button>
+      </div>
+      
+      <div id="quoteAlert" style="margin-top: 20px;"></div>
+    </div>
+    
+    <!-- TAB: INVENTORY -->
+    <div id="inventory" class="tab-content">
+      <h2>ניהול מלאי</h2>
+      
+      <select id="balloonType">
+        <option>בחר סוג בלון</option>
+        <option>טקס</option>
+        <option>מיילר</option>
+        <option>מוצץ</option>
+        <option>פומפום</option>
+      </select>
+      
+      <select id="balloonSize">
+        <option>בחר גודל</option>
+        <option>9"</option>
+        <option>11"</option>
+        <option>12"</option>
+        <option>14"</option>
+        <option>16"</option>
+        <option>18"</option>
+      </select>
+      
+      <input type="text" id="balloonColor" placeholder="צבע">
+      <input type="number" id="balloonQty" placeholder="כמות" min="0">
+      <input type="number" id="balloonMin" placeholder="כמות מינימום להתראה" min="0">
+      
+      <div style="display: flex; gap: 10px;">
+        <button onclick="addInventory()">➕ הוסף לכמות</button>
+        <button onclick="exportInventory()">📊 ייצא ל-Excel</button>
+      </div>
+      
+      <div id="inventoryList" style="margin-top: 30px;"></div>
+    </div>
+    
+    <!-- TAB: CHAT ANALYSIS -->
+    <div id="chat" class="tab-content">
+      <h2>ניתוח שיחת וואטסאפ</h2>
+      <p style="color: #666; font-size: 13px; margin-bottom: 15px;">
+        הדבק כל שיחה מוואטסאפ כאן — AI יחלץ את הפרטים בחינם
+      </p>
+      
+      <textarea id="chatInput" placeholder="דוגמה:
+לקוח: שלום, אני צריך עיצוב לברית ביום ראשון
+הושעיה: כמה אנשים צפויים?
+לקוח: כ-100 אנשים
+..." rows="8"></textarea>
+      
+      <button onclick="analyzeChat()">🤖 נתח עם AI</button>
+      <div id="chatAlert" style="margin-top: 20px;"></div>
+    </div>
+    
+    <!-- TAB: HISTORY -->
+    <div id="history" class="tab-content">
+      <h2>היסטוריית הצעות ומלאי</h2>
+      <p style="color: #666; font-size: 13px;">כל המידע נשמר בדיסק שלך (localStorage)</p>
+      
+      <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+        <button onclick="downloadHistory()">📥 הוריד JSON</button>
+        <button onclick="uploadHistory()" style="background: #28a745;">📤 העלה JSON</button>
+        <button onclick="clearHistory()" style="background: #dc3545;">🗑️ מחק הכל</button>
+      </div>
+      
+      <div id="historyList"></div>
+    </div>
+  </div>
+  
+  <script>
+    const WORKER_URL = "https://hoshaya-worker.hoshaya.workers.dev";
+    const STORAGE_KEY = "hoshaya_data_v2";
+    
+    // ==================== TAB SWITCHING ====================
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.tab).classList.add('active');
+      });
+    });
+    
+    // ==================== QUOTES ====================
+    function saveQuote() {
+      const quote = {
+        id: Date.now(),
+        clientName: document.getElementById('clientName').value,
+        clientPhone: document.getElementById('clientPhone').value,
+        clientEmail: document.getElementById('clientEmail').value,
+        items: document.getElementById('quoteItems').value,
+        price: parseFloat(document.getElementById('quotePrice').value) || 0,
+        date: new Date().toLocaleDateString('he-IL'),
+        type: 'quote'
+      };
+      
+      if (!quote.clientName || !quote.items) {
+        showAlert('quoteAlert', 'אנא מלא את כל השדות', 'error');
+        return;
+      }
+      
+      let data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{"quotes":[]}');
+      data.quotes = data.quotes || [];
+      data.quotes.push(quote);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      
+      showAlert('quoteAlert', `✅ הצעה לשם ${quote.clientName} נשמרה בהצלחה!`, 'success');
+      document.getElementById('clientName').value = '';
+      document.getElementById('clientPhone').value = '';
+      document.getElementById('clientEmail').value = '';
+      document.getElementById('quoteItems').value = '';
+      document.getElementById('quotePrice').value = '';
+    }
+    
+    function downloadQuote() {
+      showAlert('quoteAlert', '📥 הורדת PDF עדיין בפיתוח (בקרוב)', 'info');
+    }
+    
+    // ==================== INVENTORY ====================
+    function addInventory() {
+      const type = document.getElementById('balloonType').value;
+      const size = document.getElementById('balloonSize').value;
+      const color = document.getElementById('balloonColor').value;
+      const qty = parseInt(document.getElementById('balloonQty').value) || 0;
+      const min = parseInt(document.getElementById('balloonMin').value) || 0;
+      
+      if (type === 'בחר סוג בלון' || size === 'בחר גודל' || !color || qty <= 0) {
+        alert('אנא מלא את כל השדות');
+        return;
+      }
+      
+      const item = {
+        id: Date.now(),
+        type, size, color, qty, min,
+        date: new Date().toLocaleDateString('he-IL'),
+        type_record: 'inventory'
+      };
+      
+      let data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{"inventory":[]}');
+      data.inventory = data.inventory || [];
+      data.inventory.push(item);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      
+      renderInventory();
+      document.getElementById('balloonQty').value = '';
+    }
+    
+    function renderInventory() {
+      let data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{"inventory":[]}');
+      const html = (data.inventory || [])
+        .sort((a,b) => new Date(b.date) - new Date(a.date))
+        .map(item => `
+          <div class="inventory-item">
+            <div>
+              <strong>${item.type} ${item.size}</strong> - ${item.color}
+              <span style="color: #666;">(${item.qty} יח')</span>
+            </div>
+            <div style="text-align: left;">
+              <button onclick="deleteInventory(${item.id})" style="background: #dc3545; padding: 8px 12px; font-size: 12px;">מחק</button>
+            </div>
+          </div>
+        `)
+        .join('');
+      
+      document.getElementById('inventoryList').innerHTML = html || '<p style="color: #999;">אין פריטים במלאי</p>';
+    }
+    
+    function deleteInventory(id) {
+      let data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{"inventory":[]}');
+      data.inventory = (data.inventory || []).filter(item => item.id !== id);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      renderInventory();
+    }
+    
+    function exportInventory() {
+      let data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{"inventory":[]}');
+      const csvContent = "סוג,גודל,צבע,כמות,מינימום,תאריך\n" +
+        (data.inventory || [])
+          .map(item => `${item.type},${item.size},${item.color},${item.qty},${item.min},${item.date}`)
+          .join('\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `hoshaya-inventory-${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+    }
+    
+    // ==================== CHAT ANALYSIS ====================
+    async function analyzeChat() {
+      const chat = document.getElementById('chatInput').value;
+      if (!chat.trim()) {
+        showAlert('chatAlert', 'אנא הדבק שיחה', 'error');
+        return;
+      }
+      
+      showAlert('chatAlert', '🔄 מנתח...', 'info');
+      
+      try {
+        const res = await fetch(`${WORKER_URL}/gemini`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: `אתה עוזר בעיצוב אירועים בלונים. אנתח את השיחה הבאה וחלץ:
+1. שם הלקוח
+2. סוג האירוע
+3. מספר אנשים המשוער
+4. תאריך האירוע
+5. אומדן תקציב ראשוני
+
+שיחה:
+${chat}
+
+תן את התשובה בפורמט JSON:
+{
+  "clientName": "...",
+  "eventType": "...",
+  "attendees": 0,
+  "date": "...",
+  "estimatedBudget": 0,
+  "notes": "..."
+}`
+          })
+        });
+        
+        const result = await res.json();
+        if (result.ok && result.text) {
+          showAlert('chatAlert', `✅ ניתוח הושלם:<br><pre style="background: #f8f9fa; padding: 10px; border-radius: 6px; overflow-x: auto;">${result.text}</pre>`, 'success');
+        } else {
+          showAlert('chatAlert', 'שגיאה בניתוח', 'error');
+        }
+      } catch (e) {
+        showAlert('chatAlert', `❌ שגיאה: ${e.message}`, 'error');
+      }
+    }
+    
+    // ==================== HISTORY ====================
+    function downloadHistory() {
+      const data = localStorage.getItem(STORAGE_KEY) || '{}';
+      const blob = new Blob([data], { type: 'application/json' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `hoshaya-backup-${new Date().toISOString().split('T')[0]}.json`;
+      link.click();
+    }
+    
+    function uploadHistory() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            JSON.parse(reader.result);
+            localStorage.setItem(STORAGE_KEY, reader.result);
+            renderInventory();
+            showAlert('quoteAlert', '✅ הנתונים עודכנו בהצלחה', 'success');
+          } catch {
+            alert('קובץ לא תקין');
+          }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    }
+    
+    function clearHistory() {
+      if (confirm('האם אתה בטוח? פעולה זו לא ניתנת לביטול')) {
+        localStorage.removeItem(STORAGE_KEY);
+        renderInventory();
+        showAlert('quoteAlert', '🗑️ כל הנתונים נמחקו', 'success');
+      }
+    }
+    
+    // ==================== HELPERS ====================
+    function showAlert(elementId, message, type) {
+      const el = document.getElementById(elementId);
+      if (!el) return;
+      el.innerHTML = `<div class="alert ${type}">${message}</div>`;
+    }
+    
+    // Initialize
+    renderInventory();
+  </script>
+</body>
+</html>
