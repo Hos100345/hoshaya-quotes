@@ -423,6 +423,21 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
 <div id="T4" style="display:none">
 <div class="sec">
 
+  <!-- כניסה: המלאי נקרא ונכתב רק מול Supabase -->
+  <div id="INVAUTH" style="display:none">
+    <div class="card">
+      <div class="ct">🔒 כניסה למלאי</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:10px">
+        המלאי נשמר בשרת ולא במכשיר. נשלח קישור כניסה לאימייל — יש לפתוח אותו במכשיר הזה.
+      </div>
+      <input class="inp" id="INVEMAIL" type="email" inputmode="email" autocomplete="email" placeholder="האימייל שלך" style="margin-bottom:8px">
+      <div id="INVAUTHST" class="st" style="display:none"></div>
+      <button class="btn bl" onclick="invLogin()" id="INVLOGINBTN">📧 שלח לי קישור כניסה</button>
+    </div>
+  </div>
+
+  <div id="INVMAIN" style="display:none">
+
   <!-- Summary bar -->
   <div style="display:flex;gap:8px;margin-bottom:12px">
     <div style="flex:1;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center">
@@ -442,13 +457,12 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
   <!-- Category filter -->
   <div class="fscr" id="INVFSC" style="margin-bottom:10px">
     <button class="chip on" onclick="invFC('הכל',this)">הכל</button>
-    <button class="chip" onclick="invFC('5 אינץ\'',this)">5″</button>
-    <button class="chip" onclick="invFC('12 אינץ\'',this)">12″</button>
-    <button class="chip" onclick="invFC('14 אינץ\'',this)">14″</button>
-    <button class="chip" onclick="invFC('32 אינץ\'',this)">32″</button>
-    <button class="chip" onclick="invFC('מיילרים',this)">מיילרים</button>
-    <button class="chip" onclick="invFC('מספרים',this)">מספרים</button>
-    <button class="chip" onclick="invFC('אחר',this)">אחר</button>
+    <button class="chip" onclick="invFC('לטקס',this)">🎈 לטקס</button>
+    <button class="chip" onclick="invFC('מיילר',this)">✨ מיילר</button>
+    <button class="chip" onclick="invFC('טוויסטינג',this)">🐶 טוויסטינג</button>
+    <button class="chip" onclick="invFC('הליום',this)">💨 הליום</button>
+    <button class="chip" onclick="invFC('אביזרים',this)">🧰 אביזרים</button>
+    <button class="chip" onclick="invFC('אחר',this)">📦 אחר</button>
   </div>
 
   <!-- Items list -->
@@ -460,6 +474,15 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
     <button class="btn gr" style="flex:1;margin-bottom:0" onclick="copyMissing()">📋 העתק חוסרים</button>
     <button class="btn bl" style="flex:1;margin-bottom:0" onclick="openImp()">📥 ייבוא</button>
   </div>
+
+  <div style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:10px;color:var(--muted)">
+    <span>מחובר: <span id="INVWHO"></span></span>
+    <span style="margin-right:auto"></span>
+    <button onclick="loadInv()" style="background:none;border:none;color:var(--bl);font-family:'Heebo',sans-serif;font-size:10px;cursor:pointer">↻ רענן</button>
+    <button onclick="invLogout()" style="background:none;border:none;color:var(--muted);font-family:'Heebo',sans-serif;font-size:10px;cursor:pointer">התנתק</button>
+  </div>
+
+  </div><!-- /INVMAIN -->
 
 </div>
 </div>
@@ -474,12 +497,11 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
     <input class="inp" id="INVMNAME" placeholder="למשל: לטקס ורוד 12 אינץ'" style="margin-bottom:8px;margin-top:3px">
     <label class="lbl">קטגוריה</label>
     <select class="sel" id="INVMCAT" style="margin-bottom:8px;margin-top:3px">
-      <option value="5 אינץ'">5 אינץ'</option>
-      <option value="12 אינץ'" selected>12 אינץ'</option>
-      <option value="14 אינץ'">14 אינץ'</option>
-      <option value="32 אינץ'">32 אינץ'</option>
-      <option value="מיילרים">מיילרים</option>
-      <option value="מספרים">מספרים</option>
+      <option value="לטקס" selected>לטקס</option>
+      <option value="מיילר">מיילר</option>
+      <option value="טוויסטינג">טוויסטינג</option>
+      <option value="הליום">הליום</option>
+      <option value="אביזרים">אביזרים</option>
       <option value="אחר">אחר</option>
     </select>
     <label class="lbl">כמות במלאי</label>
@@ -513,7 +535,7 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
     <div id="IMPSTEP2" style="display:none">
       <div id="IMPSUM" style="font-size:12px;font-weight:700;color:var(--bl);margin-bottom:9px"></div>
       <div id="IMPPREV" style="max-height:320px;overflow-y:auto;margin-bottom:11px"></div>
-      <button class="mbt p" onclick="applyImport()">✅ אשר ומזג למלאי</button>
+      <button class="mbt p" id="IMPAPPLY" onclick="applyImport()">✅ אשר ומזג למלאי</button>
       <button class="mbt s" onclick="backImport()">↩ חזרה לעריכה</button>
     </div>
   </div>
@@ -531,6 +553,9 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
 
 <!-- Google Identity Services -->
 <script src="https://accounts.google.com/gsi/client" async></script>
+
+<!-- Supabase — מקור האמת של המלאי -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 
 <script>
 // ── CONSTANTS ──
@@ -555,7 +580,7 @@ const BGB=document.getElementById('BGB');
 for(let i=0;i<12;i++){const b=document.createElement('div');b.className='bb';const s=40+Math.random()*60;b.style.cssText=`width:${s}px;height:${s*1.2}px;left:${Math.random()*100}%;color:${cols[i%5]};background:${cols[i%5]};animation-duration:${14+Math.random()*18}s;animation-delay:${-Math.random()*20}s;`;BGB.appendChild(b);}
 
 // ── NAV ──
-function sw(i){cT=i;[0,1,2,3,4].forEach(j=>{document.getElementById(`T${j}`).style.display=j===i?'block':'none';document.getElementById(`nt${j}`).classList.toggle('on',j===i);document.getElementById(`NB${j}`).classList.toggle('on',j===i);});if(i===0)rg();if(i===2)qcalc();if(i===4)renderInv();}
+function sw(i){cT=i;[0,1,2,3,4].forEach(j=>{document.getElementById(`T${j}`).style.display=j===i?'block':'none';document.getElementById(`nt${j}`).classList.toggle('on',j===i);document.getElementById(`NB${j}`).classList.toggle('on',j===i);});if(i===0)rg();if(i===2)qcalc();if(i===4){renderInv();loadInv();}}
 
 // ── CATALOG ──
 function loadCat(){try{const s=localStorage.getItem('hcat4');if(s)cat=JSON.parse(s);}catch(e){}rg();}
@@ -712,70 +737,141 @@ function sRecSt(type,msg){const el=document.getElementById('RECST');el.className
 function rParsedRec(p){document.getElementById('RECPD').style.display='block';let h='';if(p.clientName)h+=`👤 <b>שם:</b> ${p.clientName}<br>`;if(p.clientPhone)h+=`📞 <b>טלפון:</b> ${p.clientPhone}<br>`;if(p.eventType)h+=`🎉 <b>אירוע:</b> ${p.eventType}<br>`;if(p.eventDate)h+=`📅 <b>תאריך:</b> ${new Date(p.eventDate).toLocaleDateString('he-IL')}<br>`;if(p.distanceKm>0)h+=`🚗 ${p.distanceKm} ק"מ<br>`;if(p.isLocal)h+=`🏘️ <b>תושב/ת יישוב</b> — הנחה 25%<br>`;h+='<br>'+p.items.map(i=>`• ${i.name} × ${i.qty} — <b style="color:var(--gold)">${i.price}₪</b>`).join('<br>');const tot=p.items.reduce((s,i)=>s+i.price,0)+Math.round((p.distanceKm||0)*2*1.5);h+=`<br><br><span style="color:var(--gold);font-weight:700">💰 סה"כ: ${tot}₪</span>`;document.getElementById('RECPDTXT').innerHTML=h;}
 function recApply(){if(!recParsed)return;pQ=recParsed;qapply();}
 
-// ── INVENTORY ──
-const INV_CATS=["5 אינץ'","12 אינץ'","14 אינץ'","32 אינץ'","מיילרים","מספרים","אחר"];
-const INV_DEFAULT=[
-  // 5"
-  {id:'i1',name:"לטקס לבן 5\"",cat:"5 אינץ'",qty:50,min:20},
-  {id:'i2',name:"לטקס שחור 5\"",cat:"5 אינץ'",qty:30,min:20},
-  {id:'i3',name:"לטקס ורוד 5\"",cat:"5 אינץ'",qty:40,min:20},
-  // 12"
-  {id:'i4',name:"לטקס לבן 12\"",cat:"12 אינץ'",qty:100,min:30},
-  {id:'i5',name:"לטקס שחור 12\"",cat:"12 אינץ'",qty:80,min:30},
-  {id:'i6',name:"לטקס ורוד 12\"",cat:"12 אינץ'",qty:60,min:30},
-  {id:'i7',name:"לטקס כחול 12\"",cat:"12 אינץ'",qty:70,min:30},
-  {id:'i8',name:"לטקס זהב 12\"",cat:"12 אינץ'",qty:50,min:30},
-  {id:'i9',name:"לטקס אדום 12\"",cat:"12 אינץ'",qty:40,min:30},
-  // 14"
-  {id:'i10',name:"לטקס לבן 14\"",cat:"14 אינץ'",qty:30,min:15},
-  {id:'i11',name:"לטקס ורוד 14\"",cat:"14 אינץ'",qty:20,min:15},
-  // 32"
-  {id:'i12',name:"מיילר עגול זהב 32\"",cat:"32 אינץ'",qty:10,min:5},
-  {id:'i13',name:"מיילר עגול כסף 32\"",cat:"32 אינץ'",qty:10,min:5},
-  // מיילרים
-  {id:'i14',name:'מיילר לב ורוד 18"',cat:"מיילרים",qty:15,min:5},
-  {id:'i15',name:'מיילר לב אדום 18"',cat:"מיילרים",qty:15,min:5},
-  {id:'i16',name:'מיילר כוכב זהב 18"',cat:"מיילרים",qty:10,min:5},
-  {id:'i17',name:'מיילר עגול 22"',cat:"מיילרים",qty:8,min:3},
-  // מספרים
-  {id:'i18',name:"מיילר מספר 0",cat:"מספרים",qty:5,min:3},
-  {id:'i19',name:"מיילר מספר 1",cat:"מספרים",qty:8,min:3},
-  {id:'i20',name:"מיילר מספר 2",cat:"מספרים",qty:6,min:3},
-  {id:'i21',name:"מיילר מספר 3",cat:"מספרים",qty:6,min:3},
-  {id:'i22',name:"מיילר מספר 4",cat:"מספרים",qty:5,min:3},
-  {id:'i23',name:"מיילר מספר 5",cat:"מספרים",qty:7,min:3},
-  {id:'i24',name:"מיילר מספר 6",cat:"מספרים",qty:5,min:3},
-  {id:'i25',name:"מיילר מספר 7",cat:"מספרים",qty:5,min:3},
-  {id:'i26',name:"מיילר מספר 8",cat:"מספרים",qty:4,min:3},
-  {id:'i27',name:"מיילר מספר 9",cat:"מספרים",qty:4,min:3},
-];
-let invItems=[],invCat='הכל';
-function loadInv(){try{const s=localStorage.getItem('hinv');if(s)invItems=JSON.parse(s);else{invItems=INV_DEFAULT.map(i=>({...i,qty:0}));saveInv();}}catch(e){invItems=INV_DEFAULT.map(i=>({...i,qty:0}));}}
-function saveInv(){try{localStorage.setItem('hinv',JSON.stringify(invItems));}catch(e){}updateInvStats();}
+// ── INVENTORY — מקור האמת הוא Supabase, לא localStorage ──
+const SB_URL='https://sccivxenkyzxolpraexf.supabase.co';
+const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjY2l2eGVua3l6eG9scHJhZXhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MTM2MTksImV4cCI6MjA5OTM4OTYxOX0.jEDlWFJWX9oKn_aCBSD2OlRXMja9B07PJym92YXgfWw';
+const INV_OWNER='hoshaya@gmail.com';
+const APP_SOURCE='אפליקציה';
+// חייב להתאים ל-CHECK על inventory.items.category
+const INV_CATS=['לטקס','מיילר','טוויסטינג','הליום','אביזרים','אחר'];
+
+let SB=null,invUser=null,invItems=[],invCat='הכל';
+
+function sbClient(){
+  if(SB)return SB;
+  if(!window.supabase)return null;
+  SB=window.supabase.createClient(SB_URL,SB_ANON,{
+    db:{schema:'inventory'},
+    auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'hosh_inv_auth'}
+  });
+  return SB;
+}
+function sAuthSt(t,m){const el=document.getElementById('INVAUTHST');el.className=`st ${t}`;el.textContent=m;el.style.display='block';}
+
+async function initInv(){
+  const c=sbClient();
+  if(!c){showInvGate('❌ ספריית Supabase לא נטענה — בדוק חיבור לרשת');return;}
+  const {data:{session}}=await c.auth.getSession();
+  applyInvSession(session);
+  c.auth.onAuthStateChange((_ev,sess)=>applyInvSession(sess));
+  // חזרה ללשונית או למסך → קוראים מחדש מהשרת
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible'&&cT===4&&invUser)loadInv();
+  });
+}
+function showInvGate(msg){
+  document.getElementById('INVAUTH').style.display='block';
+  document.getElementById('INVMAIN').style.display='none';
+  if(msg)sAuthSt('er',msg);
+}
+function applyInvSession(session){
+  const email=session?.user?.email||null;
+  if(email&&email.toLowerCase()!==INV_OWNER){
+    invUser=null;invItems=[];updateInvStats();
+    showInvGate(`❌ החשבון ${email} אינו מורשה למלאי`);
+    return;
+  }
+  invUser=session?.user||null;
+  if(!invUser){invItems=[];updateInvStats();showInvGate();return;}
+  document.getElementById('INVAUTH').style.display='none';
+  document.getElementById('INVMAIN').style.display='block';
+  document.getElementById('INVWHO').textContent=invUser.email;
+  loadInv();
+}
+async function invLogin(){
+  const email=(document.getElementById('INVEMAIL').value||'').trim().toLowerCase();
+  if(!email){sAuthSt('er','⚠️ נא להזין אימייל');return;}
+  const btn=document.getElementById('INVLOGINBTN');
+  btn.disabled=true;sAuthSt('ld','⏳ שולח קישור...');
+  const {error}=await sbClient().auth.signInWithOtp({email,options:{emailRedirectTo:location.href.split('#')[0]}});
+  btn.disabled=false;
+  if(error)sAuthSt('er','❌ '+error.message);
+  else sAuthSt('ok','✅ נשלח קישור לאימייל — יש לפתוח אותו במכשיר הזה');
+}
+async function invLogout(){await sbClient().auth.signOut();toast('התנתקת מהמלאי');}
+
+// ── קריאה ──
+function rowToItem(r){return{id:r.id,name:r.name,cat:r.category,qty:r.qty,min:r.min_qty};}
+async function loadInv(){
+  const c=sbClient();
+  if(!c||!invUser)return;
+  const list=document.getElementById('INVLIST');
+  if(!invItems.length)list.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">טוען מלאי…</div>';
+  const {data,error}=await c.from('items').select('id,name,category,qty,min_qty').eq('active',true).order('category').order('name');
+  if(error){
+    list.innerHTML=`<div style="text-align:center;padding:26px;color:var(--pink);font-size:12px;line-height:1.7">❌ ${escHtml(error.message)}</div>`;
+    return;
+  }
+  invItems=(data||[]).map(rowToItem);
+  renderInv();
+}
+
+// ── כתיבה ──
+// כל פלוס/מינוס נכתב לשרת. debounce קצר מאחד רצף לחיצות לכתיבה אחת,
+// כדי שלא ייווצרו מרוצי-כתיבה ולא שורת movement לכל נגיעה.
+const _qtyTimers=new Map();
+function pushQty(id){
+  clearTimeout(_qtyTimers.get(id));
+  _qtyTimers.set(id,setTimeout(async()=>{
+    _qtyTimers.delete(id);
+    const it=invItems.find(x=>x.id===id);
+    if(!it)return;
+    const {error}=await sbClient().from('items').update({qty:it.qty,updated_by:APP_SOURCE}).eq('id',id);
+    if(error){toast('❌ לא נשמר: '+error.message,1);loadInv();}
+  },500));
+}
+function flushQty(){_qtyTimers.forEach((t,id)=>{clearTimeout(t);_qtyTimers.delete(id);const it=invItems.find(x=>x.id===id);if(it)sbClient().from('items').update({qty:it.qty,updated_by:APP_SOURCE}).eq('id',id);});}
+window.addEventListener('pagehide',flushQty);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flushQty();});
+
+function invAdj(id,delta){
+  const it=invItems.find(x=>x.id===id);
+  if(!it)return;
+  const next=Math.max(0,it.qty+delta);
+  if(next===it.qty)return;
+  it.qty=next;renderInv();pushQty(id);
+}
+
 function invFC(c,btn){invCat=c;document.querySelectorAll('#INVFSC .chip').forEach(x=>x.classList.remove('on'));btn.classList.add('on');renderInv();}
-function updateInvStats(){const total=invItems.length;const missing=invItems.filter(i=>i.qty<i.min).length;const ok=total-missing;document.getElementById('INV_TOTAL').textContent=total;document.getElementById('INV_MISSING').textContent=missing;document.getElementById('INV_OK').textContent=ok;}
+function updateInvStats(){const total=invItems.length;const missing=invItems.filter(i=>i.qty<i.min).length;document.getElementById('INV_TOTAL').textContent=total;document.getElementById('INV_MISSING').textContent=missing;document.getElementById('INV_OK').textContent=total-missing;}
 function renderInv(){
   const list=document.getElementById('INVLIST');
+  updateInvStats();
   const filtered=invCat==='הכל'?invItems:invItems.filter(i=>i.cat===invCat);
-  if(!filtered.length){list.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">אין פריטים בקטגוריה זו</div>';return;}
-  // Group by category if showing all
+  if(!filtered.length){
+    list.innerHTML=invItems.length
+      ? '<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">אין פריטים בקטגוריה זו</div>'
+      : '<div style="text-align:center;padding:34px 20px;color:var(--muted);font-size:13px;line-height:1.8">📦 המלאי ריק<br>"＋ הוסף פריט" לפריט בודד, או "📥 ייבוא" לרשימה שלמה</div>';
+    return;
+  }
   let html='';
   if(invCat==='הכל'){
-    INV_CATS.forEach(cat=>{const items=filtered.filter(i=>i.cat===cat);if(!items.length)return;html+=`<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:10px 0 6px;padding-right:2px">${cat}</div>`;html+=items.map(i=>invItemHTML(i)).join('');});
+    INV_CATS.forEach(cat=>{const items=filtered.filter(i=>i.cat===cat);if(!items.length)return;html+=`<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:10px 0 6px;padding-right:2px">${escHtml(cat)}</div>`;html+=items.map(i=>invItemHTML(i)).join('');});
   }else{html=filtered.map(i=>invItemHTML(i)).join('');}
-  list.innerHTML=html;updateInvStats();}
+  list.innerHTML=html;
+}
 function invItemHTML(i){
   const isMissing=i.qty<i.min;
   const pct=i.min>0?Math.min(100,Math.round(i.qty/i.min*100)):100;
   const barColor=isMissing?'var(--pink)':i.qty<i.min*2?'var(--gold)':'var(--ok)';
   return `<div style="background:var(--card);border:1px solid ${isMissing?'rgba(255,107,157,.3)':'var(--border)'};border-radius:10px;padding:10px 12px;margin-bottom:7px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-      <div style="font-size:12px;font-weight:700">${isMissing?'⚠️ ':''} ${i.name}</div>
+      <div style="font-size:12px;font-weight:700">${isMissing?'⚠️ ':''}${escHtml(i.name)}</div>
       <div style="display:flex;align-items:center;gap:6px">
-        <button onclick="invAdj('${i.id}',-1)" style="background:var(--surface);border:1px solid var(--border);color:var(--text);width:26px;height:26px;border-radius:6px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>
+        <button onclick="invAdj(${i.id},-1)" style="background:var(--surface);border:1px solid var(--border);color:var(--text);width:26px;height:26px;border-radius:6px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">−</button>
         <span style="font-size:14px;font-weight:900;min-width:28px;text-align:center;color:${isMissing?'var(--pink)':'var(--text)'}">${i.qty}</span>
-        <button onclick="invAdj('${i.id}',1)" style="background:var(--surface);border:1px solid var(--border);color:var(--text);width:26px;height:26px;border-radius:6px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">＋</button>
-        <button onclick="openEditInv('${i.id}')" style="background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 4px">✏️</button>
+        <button onclick="invAdj(${i.id},1)" style="background:var(--surface);border:1px solid var(--border);color:var(--text);width:26px;height:26px;border-radius:6px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center">＋</button>
+        <button onclick="openEditInv(${i.id})" style="background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 4px">✏️</button>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:7px">
@@ -783,10 +879,24 @@ function invItemHTML(i){
       <div style="font-size:10px;color:var(--muted);white-space:nowrap">מינ׳ ${i.min}</div>
     </div>
   </div>`;}
-function invAdj(id,delta){const i=invItems.find(x=>x.id===id);if(i){i.qty=Math.max(0,i.qty+delta);saveInv();renderInv();}}
-function openAddInv(){document.getElementById('INVMID').value='';document.getElementById('INVMTTL').textContent='➕ הוסף פריט חדש';document.getElementById('INVMNAME').value='';document.getElementById('INVMCAT').value="12 אינץ'";document.getElementById('INVMQTY').value='0';document.getElementById('INVMMIN').value='10';document.getElementById('INVM').classList.add('open');}
+
+function openAddInv(){document.getElementById('INVMID').value='';document.getElementById('INVMTTL').textContent='➕ הוסף פריט חדש';document.getElementById('INVMNAME').value='';document.getElementById('INVMCAT').value='לטקס';document.getElementById('INVMQTY').value='0';document.getElementById('INVMMIN').value='10';document.getElementById('INVM').classList.add('open');}
 function openEditInv(id){const i=invItems.find(x=>x.id===id);if(!i)return;document.getElementById('INVMID').value=id;document.getElementById('INVMTTL').textContent='✏️ ערוך פריט';document.getElementById('INVMNAME').value=i.name;document.getElementById('INVMCAT').value=i.cat;document.getElementById('INVMQTY').value=i.qty;document.getElementById('INVMMIN').value=i.min;document.getElementById('INVM').classList.add('open');}
-function saveInvItem(){const id=document.getElementById('INVMID').value;const name=document.getElementById('INVMNAME').value.trim();const cat=document.getElementById('INVMCAT').value;const qty=+(document.getElementById('INVMQTY').value)||0;const min=+(document.getElementById('INVMMIN').value)||0;if(!name)return;if(id){const i=invItems.find(x=>x.id===id);if(i){i.name=name;i.cat=cat;i.qty=qty;i.min=min;}}else{invItems.push({id:'i'+Date.now(),name,cat,qty,min});}saveInv();renderInv();closeInvM();}
+async function saveInvItem(){
+  const id=document.getElementById('INVMID').value;
+  const name=document.getElementById('INVMNAME').value.trim();
+  const cat=document.getElementById('INVMCAT').value;
+  const qty=Math.max(0,+(document.getElementById('INVMQTY').value)||0);
+  const min=Math.max(0,+(document.getElementById('INVMMIN').value)||0);
+  if(!name){toast('⚠️ נא למלא שם פריט',1);return;}
+  const row={name,category:cat,qty,min_qty:min,updated_by:APP_SOURCE};
+  const c=sbClient();
+  const {error}=id
+    ? await c.from('items').update(row).eq('id',Number(id))
+    : await c.from('items').insert(row);
+  if(error){toast('❌ '+error.message,1);return;}
+  closeInvM();await loadInv();toast(id?'✅ עודכן':'✅ נוסף');
+}
 function closeInvM(){document.getElementById('INVM').classList.remove('open');}
 function closeInvMout(e){if(e.target===document.getElementById('INVM'))closeInvM();}
 
@@ -832,7 +942,7 @@ async function runImport(){
   if(!rows){
     btn.disabled=true;btn.textContent='⏳ מנתח...';
     sImpSt('ld','⏳ ה-AI מסדר את הרשימה...');
-    const prompt=`אתה מסדר רשימת מלאי של עסק בלונים.\nהקטגוריות האפשריות: ${INV_CATS.join(', ')}\n\nהחזר JSON בלבד, ללא markdown:\n{"items":[{"name":"שם הפריט","cat":"אחת מהקטגוריות","qty":0,"min":0}]}\n\nכללים:\n- name: שם קריא בעברית הכולל סוג, צבע וגודל אם הם מופיעים בשורה\n- cat: בלון לטקס לפי הגודל שלו; מיילר לב/עגול/כוכב → "מיילרים"; מיילר ספרה → "מספרים"; כל השאר → "אחר"\n- qty: הכמות שמופיעה בשורה. אם אין מספר — 0\n- min: כמות מינימום רק אם צוינה במפורש, אחרת 0\n- אל תמציא פריטים שלא מופיעים ברשימה\n\nהרשימה:\n${text}`;
+    const prompt=`אתה מסדר רשימת מלאי של עסק בלונים.\nהקטגוריות האפשריות: ${INV_CATS.join(', ')}\n\nהחזר JSON בלבד, ללא markdown:\n{"items":[{"name":"שם הפריט","cat":"אחת מהקטגוריות","qty":0,"min":0}]}\n\nכללים:\n- name: שם קריא בעברית הכולל סוג, צבע וגודל אם הם מופיעים בשורה\n- cat: בלוני לטקס רגילים → "לטקס"; פויל/מיילר (לב, עגול, כוכב, ספרה) → "מיילר"; בלוני צורות/נקניק/260Q → "טוויסטינג"; גז או בלוני הליום → "הליום"; חוטים, משקולות, משאבות, סרטים → "אביזרים"; כל השאר → "אחר"\n- qty: הכמות שמופיעה בשורה. אם אין מספר — 0\n- min: כמות מינימום רק אם צוינה במפורש, אחרת 0\n- אל תמציא פריטים שלא מופיעים ברשימה\n\nהרשימה:\n${text}`;
     try{
       const out=await workerAI('/gemini',{prompt});
       const p=parseAIJson(out);
@@ -879,20 +989,34 @@ function impDrop(i){
   if(!impRows.length){backImport();sImpSt('er','לא נותרו פריטים לייבוא');return;}
   showImportPreview(impRows);
 }
-function applyImport(){
+async function applyImport(){
   if(!impRows||!impRows.length)return;
-  const byName=new Map(invItems.map(i=>[normName(i.name),i]));
-  let added=0,upd=0;
-  impRows.forEach(r=>{
-    const ex=byName.get(normName(r.name));
-    if(ex){ex.qty=r.qty;ex.cat=r.cat;if(r.min>0)ex.min=r.min;upd++;}
-    else{
-      const it={id:'i'+Date.now()+Math.random().toString(36).slice(2,7),name:r.name,cat:r.cat,qty:r.qty,min:r.min||10};
-      invItems.push(it);byName.set(normName(it.name),it);added++;
+  if(!invUser){toast('❌ יש להתחבר למלאי קודם',1);return;}
+  const btn=document.getElementById('IMPAPPLY');
+  btn.disabled=true;btn.textContent='⏳ שומר...';
+  const c=sbClient();
+  const inserts=impRows.filter(r=>!r.existing);
+  const updates=impRows.filter(r=>r.existing);
+  let err=null;
+  if(inserts.length){
+    const {error}=await c.from('items').insert(inserts.map(r=>({
+      name:r.name,category:r.cat,qty:r.qty,min_qty:r.min||10,updated_by:APP_SOURCE
+    })));
+    if(error)err=error;
+  }
+  if(!err){
+    for(const r of updates){
+      const patch={qty:r.qty,category:r.cat,updated_by:APP_SOURCE};
+      if(r.min>0)patch.min_qty=r.min;
+      const {error}=await c.from('items').update(patch).eq('id',r.existing.id);
+      if(error){err=error;break;}
     }
-  });
-  saveInv();renderInv();closeImp();
-  toast(`✅ ${added} נוספו, ${upd} עודכנו`);
+  }
+  btn.disabled=false;btn.textContent='✅ אשר ומזג למלאי';
+  closeImp();
+  await loadInv();
+  if(err)toast('❌ '+err.message,1);
+  else toast(`✅ ${inserts.length} נוספו, ${updates.length} עודכנו`);
 }
 // מייצא את המלאי בפורמט שאפשר לשלוח ולקבל בחזרה מעודכן
 function copyInv(){
@@ -1049,7 +1173,7 @@ function dl(ms){return new Promise(r=>setTimeout(r,ms));}
 
 // ── INIT ──
 loadCat();
-loadInv();
+initInv();
 loadDriveToken();
 radd();
 qcalc();
