@@ -458,6 +458,7 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
   <div style="display:flex;gap:7px;margin-top:4px">
     <button class="btn gray" style="flex:1;margin-bottom:0" onclick="openAddInv()">＋ הוסף פריט</button>
     <button class="btn gr" style="flex:1;margin-bottom:0" onclick="copyMissing()">📋 העתק חוסרים</button>
+    <button class="btn bl" style="flex:1;margin-bottom:0" onclick="openImp()">📥 ייבוא</button>
   </div>
 
 </div>
@@ -487,6 +488,34 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
     <input class="inp" id="INVMMIN" type="number" min="0" value="10" placeholder="10" style="margin-bottom:14px;margin-top:3px">
     <button class="mbt p" onclick="saveInvItem()">💾 שמור</button>
     <button class="mbt s" onclick="closeInvM()">ביטול</button>
+  </div>
+</div>
+
+<!-- Inventory Import Modal -->
+<div class="mov" id="INVIMP" onclick="closeImpOut(event)">
+  <div class="msh" style="max-height:88vh;overflow-y:auto">
+    <div class="mhdl"></div>
+    <div class="mttl">📥 ייבוא מלאי</div>
+
+    <div id="IMPSTEP1">
+      <div style="font-size:11px;color:var(--muted);line-height:1.8;margin-bottom:9px">
+        הדבק רשימה בכל פורמט — שורה לכל פריט:<br>
+        <span style="color:var(--bl)">לטקס ורוד 12 — 50</span> · <span style="color:var(--bl)">מיילר לב אדום 15 יח׳</span><br>
+        ה-AI יסדר לקטגוריות. אפשר גם להדביק JSON מוכן — אז זה מיידי, בלי AI.
+      </div>
+      <textarea class="inp" id="IMPTXT" style="min-height:150px;resize:vertical;line-height:1.7" placeholder="לטקס ורוד 12 — 50&#10;לטקס לבן 12 — 80&#10;מיילר לב אדום — 12"></textarea>
+      <div id="IMPST" class="st" style="display:none;margin-top:8px"></div>
+      <button class="mbt p" id="IMPBTN" style="margin-top:10px" onclick="runImport()">🤖 נתח רשימה</button>
+      <button class="mbt s" onclick="copyInv()">📤 העתק את המלאי הנוכחי</button>
+      <button class="mbt s" onclick="closeImp()">ביטול</button>
+    </div>
+
+    <div id="IMPSTEP2" style="display:none">
+      <div id="IMPSUM" style="font-size:12px;font-weight:700;color:var(--bl);margin-bottom:9px"></div>
+      <div id="IMPPREV" style="max-height:320px;overflow-y:auto;margin-bottom:11px"></div>
+      <button class="mbt p" onclick="applyImport()">✅ אשר ומזג למלאי</button>
+      <button class="mbt s" onclick="backImport()">↩ חזרה לעריכה</button>
+    </div>
   </div>
 </div>
 <!-- Drive status modal -->
@@ -760,6 +789,119 @@ function openEditInv(id){const i=invItems.find(x=>x.id===id);if(!i)return;docume
 function saveInvItem(){const id=document.getElementById('INVMID').value;const name=document.getElementById('INVMNAME').value.trim();const cat=document.getElementById('INVMCAT').value;const qty=+(document.getElementById('INVMQTY').value)||0;const min=+(document.getElementById('INVMMIN').value)||0;if(!name)return;if(id){const i=invItems.find(x=>x.id===id);if(i){i.name=name;i.cat=cat;i.qty=qty;i.min=min;}}else{invItems.push({id:'i'+Date.now(),name,cat,qty,min});}saveInv();renderInv();closeInvM();}
 function closeInvM(){document.getElementById('INVM').classList.remove('open');}
 function closeInvMout(e){if(e.target===document.getElementById('INVM'))closeInvM();}
+
+// ── ייבוא מלאי (הדבקת רשימה → AI → אישור → מיזוג) ──
+let impRows=null;
+function escHtml(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function normName(s){return String(s||'').replace(/["'״׳]/g,'').replace(/\s+/g,' ').trim().toLowerCase();}
+function openImp(){
+  document.getElementById('IMPTXT').value='';
+  document.getElementById('IMPST').style.display='none';
+  document.getElementById('IMPSTEP1').style.display='block';
+  document.getElementById('IMPSTEP2').style.display='none';
+  impRows=null;
+  document.getElementById('INVIMP').classList.add('open');
+}
+function closeImp(){document.getElementById('INVIMP').classList.remove('open');}
+function closeImpOut(e){if(e.target===document.getElementById('INVIMP'))closeImp();}
+function backImport(){document.getElementById('IMPSTEP1').style.display='block';document.getElementById('IMPSTEP2').style.display='none';}
+function sImpSt(t,m){const el=document.getElementById('IMPST');el.className=`st ${t}`;el.textContent=m;el.style.display='block';}
+
+// JSON מוכן עוקף את ה-AI לגמרי — מיידי וללא פרשנות
+function tryParseRows(text){
+  try{
+    const v=JSON.parse(text);
+    const arr=Array.isArray(v)?v:(Array.isArray(v.items)?v.items:null);
+    if(arr&&arr.length&&arr.every(r=>r&&typeof r.name==='string'))return arr;
+  }catch(e){}
+  return null;
+}
+function cleanRows(rows){
+  return rows.map(r=>({
+    name:String(r.name||'').trim(),
+    cat:INV_CATS.includes(r.cat)?r.cat:'אחר',
+    qty:Math.max(0,parseInt(r.qty,10)||0),
+    min:Math.max(0,parseInt(r.min,10)||0),
+  })).filter(r=>r.name);
+}
+async function runImport(){
+  const text=document.getElementById('IMPTXT').value.trim();
+  if(!text){sImpSt('er','⚠️ הדבק רשימה תחילה');return;}
+  const btn=document.getElementById('IMPBTN');
+  let rows=tryParseRows(text);
+  if(!rows){
+    btn.disabled=true;btn.textContent='⏳ מנתח...';
+    sImpSt('ld','⏳ ה-AI מסדר את הרשימה...');
+    const prompt=`אתה מסדר רשימת מלאי של עסק בלונים.\nהקטגוריות האפשריות: ${INV_CATS.join(', ')}\n\nהחזר JSON בלבד, ללא markdown:\n{"items":[{"name":"שם הפריט","cat":"אחת מהקטגוריות","qty":0,"min":0}]}\n\nכללים:\n- name: שם קריא בעברית הכולל סוג, צבע וגודל אם הם מופיעים בשורה\n- cat: בלון לטקס לפי הגודל שלו; מיילר לב/עגול/כוכב → "מיילרים"; מיילר ספרה → "מספרים"; כל השאר → "אחר"\n- qty: הכמות שמופיעה בשורה. אם אין מספר — 0\n- min: כמות מינימום רק אם צוינה במפורש, אחרת 0\n- אל תמציא פריטים שלא מופיעים ברשימה\n\nהרשימה:\n${text}`;
+    try{
+      const out=await workerAI('/gemini',{prompt});
+      const p=parseAIJson(out);
+      rows=Array.isArray(p.items)?p.items:null;
+      if(!rows)throw new Error('לא זוהו פריטים ברשימה');
+    }catch(e){
+      sImpSt('er',`❌ ${e.message}`);
+      btn.disabled=false;btn.textContent='🤖 נתח רשימה';
+      return;
+    }
+    btn.disabled=false;btn.textContent='🤖 נתח רשימה';
+  }
+  rows=cleanRows(rows);
+  if(!rows.length){sImpSt('er','❌ לא זוהו פריטים ברשימה');return;}
+  showImportPreview(rows);
+}
+function showImportPreview(rows){
+  const byName=new Map(invItems.map(i=>[normName(i.name),i]));
+  impRows=rows.map(r=>({...r,existing:byName.get(normName(r.name))||null}));
+  const upd=impRows.filter(r=>r.existing).length;
+  document.getElementById('IMPSUM').textContent=`${impRows.length} פריטים — ${impRows.length-upd} חדשים, ${upd} עדכונים`;
+  document.getElementById('IMPPREV').innerHTML=impRows.map((r,idx)=>`
+    <div style="background:var(--card);border:1px solid ${r.existing?'var(--border)':'rgba(90,158,90,.35)'};border-radius:9px;padding:9px 11px;margin-bottom:6px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <div style="min-width:0">
+          <div style="font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(r.name)}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">${escHtml(r.cat)}${r.min?' · מינ׳ '+r.min:''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+          ${r.existing?`<span style="font-size:10px;color:var(--muted)">${r.existing.qty}←</span>`:''}
+          <input type="number" min="0" value="${r.qty}" onchange="impQty(${idx},this.value)" style="width:54px;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:5px 2px;color:var(--text);font-family:'Heebo',sans-serif;font-size:13px;font-weight:700;text-align:center">
+          <span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:5px;background:${r.existing?'rgba(74,127,181,.18)':'rgba(90,158,90,.18)'};color:${r.existing?'var(--bl)':'#7BC47B'}">${r.existing?'עדכון':'חדש'}</span>
+          <button onclick="impDrop(${idx})" style="background:none;border:none;color:var(--pink);cursor:pointer;font-size:13px;padding:2px">✕</button>
+        </div>
+      </div>
+    </div>`).join('');
+  document.getElementById('IMPSTEP1').style.display='none';
+  document.getElementById('IMPSTEP2').style.display='block';
+}
+function impQty(i,v){if(impRows&&impRows[i])impRows[i].qty=Math.max(0,parseInt(v,10)||0);}
+function impDrop(i){
+  if(!impRows)return;
+  impRows.splice(i,1);
+  if(!impRows.length){backImport();sImpSt('er','לא נותרו פריטים לייבוא');return;}
+  showImportPreview(impRows);
+}
+function applyImport(){
+  if(!impRows||!impRows.length)return;
+  const byName=new Map(invItems.map(i=>[normName(i.name),i]));
+  let added=0,upd=0;
+  impRows.forEach(r=>{
+    const ex=byName.get(normName(r.name));
+    if(ex){ex.qty=r.qty;ex.cat=r.cat;if(r.min>0)ex.min=r.min;upd++;}
+    else{
+      const it={id:'i'+Date.now()+Math.random().toString(36).slice(2,7),name:r.name,cat:r.cat,qty:r.qty,min:r.min||10};
+      invItems.push(it);byName.set(normName(it.name),it);added++;
+    }
+  });
+  saveInv();renderInv();closeImp();
+  toast(`✅ ${added} נוספו, ${upd} עודכנו`);
+}
+// מייצא את המלאי בפורמט שאפשר לשלוח ולקבל בחזרה מעודכן
+function copyInv(){
+  if(!invItems.length){sImpSt('er','המלאי ריק — אין מה להעתיק');return;}
+  const txt=JSON.stringify({items:invItems.map(i=>({name:i.name,cat:i.cat,qty:i.qty,min:i.min}))},null,1);
+  navigator.clipboard.writeText(txt)
+    .then(()=>sImpSt('ok',`📋 ${invItems.length} פריטים הועתקו — אפשר לשלוח`))
+    .catch(()=>sImpSt('er','ההעתקה נכשלה'));
+}
 function pfr(n,loc){const p=PL[n];if(!p)return 0;return(loc&&p.l)?p.l:p.b;}
 function qadd(){const c=document.getElementById('QITEMS');if(c.textContent.includes('לחץ'))c.innerHTML='';const id=Date.now();qIt.push({id,name:'',qty:1,price:0});const opts=Object.keys(PL).map(k=>`<option value="${k}">${k}</option>`).join('');const row=document.createElement('div');row.className='irow';row.id=`QR${id}`;row.innerHTML=`<select style="flex:2;background:transparent;border:none;color:var(--text);font-family:'Heebo',sans-serif;font-size:11px;outline:none;direction:rtl" onchange="qun(${id},this.value)"><option value="">בחר פריט...</option>${opts}</select><input type="number" min="1" value="1" style="width:38px;background:transparent;border:none;color:var(--text);text-align:center;font-family:'Heebo',sans-serif;font-size:11px;outline:none" onchange="quq(${id},+this.value)"><span id="QP${id}" style="color:var(--gold);font-weight:700;font-size:11px;min-width:42px"></span><button onclick="qrm(${id})" style="background:none;border:none;color:var(--pink);cursor:pointer;font-size:13px">✕</button>`;c.appendChild(row);qcalc();}
 function qun(id,name){const it=qIt.find(i=>i.id===id);if(it){it.name=name;it.price=pfr(name,qLoc)*it.qty;}const el=document.getElementById(`QP${id}`);if(el)el.textContent=it&&it.price?it.price+'₪':'';qcalc();}
