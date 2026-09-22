@@ -353,11 +353,12 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
       <div style="border:2px dashed var(--border);border-radius:10px;padding:24px;text-align:center;cursor:pointer;background:var(--surface);margin-bottom:10px" onclick="document.getElementById('RECFI').click()" id="RECDZ">
         <div style="font-size:36px;margin-bottom:7px">🎙️</div>
         <div style="font-size:14px;font-weight:700;margin-bottom:3px">בחר קובץ הקלטה</div>
-        <div style="font-size:11px;color:var(--muted)">MP3, M4A, WAV, OGG — עד 25MB</div>
+        <div style="font-size:11px;color:var(--muted)">MP3, M4A, WAV, OGG — עד 12MB</div>
       </div>
       <input type="file" id="RECFI" accept="audio/*" style="display:none" onchange="handleRec(this.files)">
       <div id="RECNAME" style="font-size:12px;color:var(--bl);margin-bottom:8px;display:none"></div>
       <div id="RECST" class="st" style="display:none"></div>
+      <div id="RECTR" style="background:var(--surface);border-radius:8px;padding:10px;font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6;max-height:120px;overflow-y:auto;display:none"></div>
       <button class="btn pu" id="RECBTN" onclick="transcribeRec()" style="display:none">🤖 תמלל וצור הצעת מחיר</button>
     </div>
     <div id="RECPD" style="display:none">
@@ -511,6 +512,7 @@ const HD=["א׳","ב׳","ג׳","ד׳","ה׳","ו׳","ז׳","ח׳","ט׳","י׳",
 const HY=[];for(let y=5715;y<=5810;y++)HY.push({v:y,l:`${y} (${y-3760})`});
 const ET=[{v:'birthday',l:'🎂 יום הולדת'},{v:'anniversary',l:'💍 יום נישואים'},{v:'barmitzvah',l:'✡️ בר/בת מצווה'},{v:'other',l:'🎊 אחר'}];
 const SU='https://script.google.com/macros/s/AKfycbyk_ZSw_7nGxhO-U_kL0C5avuxSebLx4VBo9Wj1pFxD2lQQJ24YayWjWT1lDovc2rKV/exec';
+const WORKER_URL='https://hoshaya-worker.hoshaya.workers.dev';
 const MID='24d79387-483a-4678-99a5-b888c3761c49';
 const MSC='58854R0q&Q.^*sVu6zW+4h7NzUFB[1sP';
 
@@ -561,7 +563,7 @@ async function svs(){if(!cFile||!sCat)return;
   document.getElementById('PC').classList.remove('v');document.getElementById('fi').value='';
   btn.disabled=true;btn.textContent='💾 שמור לקטלוג';pb.classList.remove('v');pf.style.width='0%';}
 async function hb(files){if(!files||!files.length)return;bF=Array.from(files);bC=new Array(bF.length).fill(null);const g=document.getElementById('BGD');g.style.display='grid';g.innerHTML='';bF.forEach((f,i)=>{const d=document.createElement('div');d.className='bit';d.id=`BI${i}`;const img=document.createElement('img');img.loading='lazy';const bc=document.createElement('div');bc.className='bca';bc.id=`BC${i}`;bc.textContent='?';const ov=document.createElement('div');ov.className='bov';ov.id=`BO${i}`;ov.textContent='⏳';d.appendChild(img);d.appendChild(bc);d.appendChild(ov);g.appendChild(d);const r=new FileReader();r.onload=e=>img.src=e.target.result;r.readAsDataURL(f);});document.getElementById('BCN').textContent=`${bF.length} תמונות`;document.getElementById('BAC').classList.add('v');}
-async function rbAI(){toast('🤖 מנתח...');for(let i=0;i<bF.length;i++){const ov=document.getElementById(`BO${i}`);if(ov)ov.textContent='🔍';await new Promise(res=>{const r=new FileReader();r.onload=async e=>{const c=await aiQ(e.target.result);bC[i]=c;const bc=document.getElementById(`BC${i}`);if(bc)bc.textContent=c;if(ov)ov.textContent='✅';res();};r.readAsDataURL(bF[i]);});}toast('✅ זיהוי הושלם!');}
+async function rbAI(){toast('🤖 מנתח...');for(let i=0;i<bF.length;i++){const ov=document.getElementById(`BO${i}`);if(ov)ov.textContent='🔍';await new Promise(res=>{const r=new FileReader();r.onload=async e=>{const c=await aiQ(e.target.result);bC[i]=c;const bc=document.getElementById(`BC${i}`);if(bc)bc.textContent=c||'?';if(ov)ov.textContent=c?'✅':'⚠️';res();};r.readAsDataURL(bF[i]);});}toast('✅ זיהוי הושלם!');}
 async function svb(){
   const mc=document.getElementById('BCS').value;
   const btn=document.querySelector('.bsv');if(btn){btn.disabled=true;btn.textContent='⏳ שומר...';}
@@ -586,8 +588,32 @@ async function svb(){
 const DZ=document.getElementById('DZ');DZ.addEventListener('dragover',e=>{e.preventDefault();DZ.classList.add('ov');});DZ.addEventListener('dragleave',()=>DZ.classList.remove('ov'));DZ.addEventListener('drop',e=>{e.preventDefault();DZ.classList.remove('ov');const f=e.dataTransfer.files;if(f.length===1)hs(f);else hb(f);});
 
 // ── AI ──
-async function aiImg(b64){const c=await aiQ(b64,true);document.getElementById('AIR').textContent=c||'כללי';}
-async function aiQ(b64,v=false){const base=b64.split(',')[1],mt=b64.split(';')[0].split(':')[1];try{const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:150,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:mt,data:base}},{type:'text',text:`בחר קטגוריה אחת מ: ${CATS.join(', ')}\nJSON בלבד: {"category":"...","description":"..."}`}]}]})});const d=await r.json();const t=d.content?.[0]?.text||'{}';const p=JSON.parse(t.replace(/```json|```/g,'').trim());if(v)document.getElementById('AID').textContent=p.description||'';return p.category||'כללי';}catch(e){if(v)document.getElementById('AIR').textContent='בחר ידנית';return'כללי';}}
+// ── AI (דרך ה-Worker — המפתח נשאר בצד שרת) ──
+async function workerAI(path,body){
+  const res=await fetch(`${WORKER_URL}${path}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  let data=null;
+  try{data=await res.json();}catch(e){}
+  if(!data)throw new Error(`שגיאת שרת (${res.status})`);
+  if(data.ok===false||data.error)throw new Error(data.error||`שגיאת שרת (${res.status})`);
+  return data.text||'';
+}
+function parseAIJson(text){
+  const m=String(text).replace(/```json|```/g,'').trim().match(/\{[\s\S]*\}/);
+  if(!m)throw new Error('התשובה מה-AI לא בפורמט צפוי');
+  return JSON.parse(m[0]);
+}
+async function aiImg(b64){const c=await aiQ(b64,true);if(c)document.getElementById('AIR').textContent=c;}
+async function aiQ(b64,v=false){
+  try{
+    const text=await workerAI('/gemini-vision',{prompt:`בחר קטגוריה אחת מ: ${CATS.join(', ')}\nJSON בלבד: {"category":"...","description":"..."}`,image:b64});
+    const p=parseAIJson(text);
+    if(v)document.getElementById('AID').textContent=p.description||'';
+    return CATS.includes(p.category)?p.category:'כללי';
+  }catch(e){
+    if(v){document.getElementById('AIR').textContent='בחר ידנית';document.getElementById('AID').textContent=e.message;}
+    return null;
+  }
+}
 
 // ── QUOTE ──
 function sqt(i){[0,1,2,3].forEach(j=>{document.getElementById(`QQ${j}`).style.display=j===i?'block':'none';document.getElementById(`QT${j}`).classList.toggle('on',j===i);});if(i===3)rHist();}
@@ -629,28 +655,29 @@ function sCalSt(type,msg){const el=document.getElementById('QCST');el.className=
 
 // ── RECORDING ──
 let recFile=null,recParsed=null;
+const REC_MAX_MB=12;
+const AUDIO_EXT_MIME={mp3:'audio/mp3',mpga:'audio/mp3',m4a:'audio/aac',aac:'audio/aac',wav:'audio/wav',ogg:'audio/ogg',oga:'audio/ogg',opus:'audio/ogg',flac:'audio/flac',aiff:'audio/aiff',aif:'audio/aiff'};
+function audioMime(file){const ext=(file.name.split('.').pop()||'').toLowerCase();return AUDIO_EXT_MIME[ext]||file.type||'';}
 function handleRec(files){if(!files||!files.length)return;recFile=files[0];document.getElementById('RECNAME').textContent=`📎 ${recFile.name} (${(recFile.size/1024/1024).toFixed(1)}MB)`;document.getElementById('RECNAME').style.display='block';document.getElementById('RECBTN').style.display='block';document.getElementById('RECST').style.display='none';}
 async function transcribeRec(){
   if(!recFile)return;
+  if(recFile.size>REC_MAX_MB*1024*1024){sRecSt('er',`❌ הקובץ גדול מדי (${(recFile.size/1024/1024).toFixed(1)}MB) — המקסימום ${REC_MAX_MB}MB`);return;}
   sRecSt('ld','⏳ מתמלל הקלטה...');
   document.getElementById('RECBTN').disabled=true;
+  document.getElementById('RECTR').style.display='none';
   try{
-    // Convert to base64
-    const b64=await new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(',')[1]);r.readAsDataURL(recFile);});
-    const mt=recFile.type||'audio/mpeg';
-    // Use Claude to transcribe + extract quote data
+    const dataUrl=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=()=>rej(new Error('קריאת הקובץ נכשלה'));r.readAsDataURL(recFile);});
     const ps=Object.entries(PL).map(([k,v])=>`- ${k}: ${v.b}₪`).join('\n');
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:[{type:'document',source:{type:'base64',media_type:mt,data:b64}},{type:'text',text:`זוהי הקלטת שיחת טלפון של הושעיה, אמן בלונים מבית חוגלה.\n\nמחירון:\n${ps}\n- נסיעות: 1.5₪/ק"מ לוך וחזור\n- תושבי בית חוגלה: הנחה 25%\n\nתמלל את השיחה וחלץ מידע לצורך הצעת מחיר. החזר JSON בלבד:\n{"clientName":"","clientPhone":"","eventType":"","eventDate":"YYYY-MM-DD","distanceKm":0,"isLocal":false,"items":[{"name":"שם מהמחירון","qty":1}],"notes":"","transcript":"תמלול קצר של השיחה"}`}]}]})});
-    const data=await res.json();
-    const text=data.content?.[0]?.text||'';
-    const parsed=JSON.parse(text.replace(/```json|```/g,'').trim());
+    const prompt=`זוהי הקלטת שיחת טלפון של הושעיה, אמן בלונים מבית חוגלה.\n\nמחירון:\n${ps}\n- נסיעות: 1.5₪/ק"מ לוך וחזור\n- תושבי בית חוגלה: הנחה 25%\n\nתמלל את השיחה וחלץ מידע לצורך הצעת מחיר. החזר JSON בלבד:\n{"clientName":"","clientPhone":"","eventType":"","eventDate":"YYYY-MM-DD","distanceKm":0,"isLocal":false,"items":[{"name":"שם מהמחירון","qty":1}],"notes":"","transcript":"תמלול קצר של השיחה"}`;
+    const text=await workerAI('/gemini-audio',{prompt,audio:dataUrl,mime:audioMime(recFile)});
+    const parsed=parseAIJson(text);
     parsed.items=(parsed.items||[]).map(it=>({id:Date.now()+Math.random(),name:it.name,qty:it.qty||1,price:pfr(it.name,parsed.isLocal)*(it.qty||1)}));
     recParsed=parsed;
     sRecSt('ok','✅ תומלל בהצלחה!');
-    // Show transcript
-    if(parsed.transcript){const tr=document.createElement('div');tr.style.cssText='background:var(--surface);border-radius:8px;padding:10px;font-size:11px;color:var(--muted);margin-top:8px;line-height:1.6;max-height:120px;overflow-y:auto';tr.textContent=parsed.transcript;document.getElementById('RECST').after(tr);}
+    const tr=document.getElementById('RECTR');
+    if(parsed.transcript){tr.textContent=parsed.transcript;tr.style.display='block';}
     rParsedRec(parsed);
-  }catch(e){sRecSt('er',`❌ שגיאה: ${e.message}`);}
+  }catch(e){sRecSt('er',`❌ ${e.message}`);}
   document.getElementById('RECBTN').disabled=false;}
 function sRecSt(type,msg){const el=document.getElementById('RECST');el.className=`st ${type}`;el.textContent=msg;el.style.display='block';}
 function rParsedRec(p){document.getElementById('RECPD').style.display='block';let h='';if(p.clientName)h+=`👤 <b>שם:</b> ${p.clientName}<br>`;if(p.clientPhone)h+=`📞 <b>טלפון:</b> ${p.clientPhone}<br>`;if(p.eventType)h+=`🎉 <b>אירוע:</b> ${p.eventType}<br>`;if(p.eventDate)h+=`📅 <b>תאריך:</b> ${new Date(p.eventDate).toLocaleDateString('he-IL')}<br>`;if(p.distanceKm>0)h+=`🚗 ${p.distanceKm} ק"מ<br>`;if(p.isLocal)h+=`🏘️ <b>תושב/ת יישוב</b> — הנחה 25%<br>`;h+='<br>'+p.items.map(i=>`• ${i.name} × ${i.qty} — <b style="color:var(--gold)">${i.price}₪</b>`).join('<br>');const tot=p.items.reduce((s,i)=>s+i.price,0)+Math.round((p.distanceKm||0)*2*1.5);h+=`<br><br><span style="color:var(--gold);font-weight:700">💰 סה"כ: ${tot}₪</span>`;document.getElementById('RECPDTXT').innerHTML=h;}
@@ -752,7 +779,7 @@ async function qsend(){const n=document.getElementById('QCN')?.value||'',dist=+(
   catch(e){sQSt('er',`❌ ${e.message}`);}}
 function sQSt(type,msg){const el=document.getElementById('QIST');el.className=`st ${type}`;el.textContent=msg;el.style.display='block';}
 async function qparse(){const chat=document.getElementById('QCHAT')?.value||'';if(!chat.trim())return;sPSt('ld','⏳ מנתח...');const ps=Object.entries(PL).map(([k,v])=>`- ${k}: ${v.b}₪`).join('\n');const prompt=`אתה עוזר של הושעיה, אמן בלונים מבית חוגלה.\nמחירון:\n${ps}\n- נסיעות: 1.5₪/ק"מ לוך וחזור\n- תושבי בית חוגלה: הנחה 25%\n\nחלץ מהשיחה JSON בלבד:\n{"clientName":"","clientPhone":"","eventType":"","eventDate":"YYYY-MM-DD","distanceKm":0,"isLocal":false,"items":[{"name":"שם מהמחירון","qty":1}],"notes":""}\n\nשיחה:\n${chat}`;
-  try{const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:prompt}]})});const d=await r.json();const t=d.content?.[0]?.text||'';const p=JSON.parse(t.replace(/```json|```/g,'').trim());p.items=(p.items||[]).map(it=>({id:Date.now()+Math.random(),name:it.name,qty:it.qty||1,price:pfr(it.name,p.isLocal)*(it.qty||1)}));pQ=p;sPSt('ok','✅ נותח!');rParsed(p);}catch(e){sPSt('er',`❌ ${e.message}`);}}
+  try{const text=await workerAI('/gemini',{prompt});const p=parseAIJson(text);p.items=(p.items||[]).map(it=>({id:Date.now()+Math.random(),name:it.name,qty:it.qty||1,price:pfr(it.name,p.isLocal)*(it.qty||1)}));pQ=p;sPSt('ok','✅ נותח!');rParsed(p);}catch(e){sPSt('er',`❌ ${e.message}`);}}
 function sPSt(type,msg){const el=document.getElementById('QPST');el.className=`st ${type}`;el.textContent=msg;el.style.display='block';}
 function rParsed(p){document.getElementById('QPD').style.display='block';let h='';if(p.clientName)h+=`👤 <b>שם:</b> ${p.clientName}<br>`;if(p.clientPhone)h+=`📞 <b>טלפון:</b> ${p.clientPhone}<br>`;if(p.eventType)h+=`🎉 <b>אירוע:</b> ${p.eventType}<br>`;if(p.eventDate)h+=`📅 <b>תאריך:</b> ${new Date(p.eventDate).toLocaleDateString('he-IL')}<br>`;if(p.distanceKm>0)h+=`🚗 ${p.distanceKm} ק"מ<br>`;if(p.isLocal)h+=`🏘️ <b>תושב/ת יישוב</b> — הנחה 25%<br>`;h+='<br>'+p.items.map(i=>`• ${i.name} × ${i.qty} — <b style="color:var(--gold)">${i.price}₪</b>`).join('<br>');const tot=p.items.reduce((s,i)=>s+i.price,0)+Math.round((p.distanceKm||0)*2*1.5);h+=`<br><br><span style="color:var(--gold);font-weight:700">💰 סה"כ: ${tot}₪</span>`;if(p.notes)h+=`<br>📝 ${p.notes}`;document.getElementById('QPDTXT').innerHTML=h;}
 function qapply(){if(!pQ)return;if(pQ.clientName)document.getElementById('QCN').value=pQ.clientName;if(pQ.clientPhone)document.getElementById('QCP').value=pQ.clientPhone;if(pQ.eventType)document.getElementById('QET').value=pQ.eventType;if(pQ.eventDate)document.getElementById('QED').value=pQ.eventDate;if(pQ.distanceKm)document.getElementById('QDIST').value=pQ.distanceKm;if(pQ.isLocal){document.getElementById('QDISC').value=25;document.getElementById('QDRTXT').value='הנחת תושב/ת יישוב בית חוגלה';}qIt=[];document.getElementById('QITEMS').innerHTML='';pQ.items.forEach(it=>{qIt.push(it);const opts=Object.keys(PL).map(k=>`<option value="${k}"${k===it.name?' selected':''}>${k}</option>`).join('');const row=document.createElement('div');row.className='irow';row.id=`QR${it.id}`;row.innerHTML=`<select style="flex:2;background:transparent;border:none;color:var(--text);font-family:'Heebo',sans-serif;font-size:11px;outline:none;direction:rtl" onchange="qun(${it.id},this.value)"><option value="">בחר...</option>${opts}</select><input type="number" min="1" value="${it.qty}" style="width:38px;background:transparent;border:none;color:var(--text);text-align:center;font-family:'Heebo',sans-serif;font-size:11px;outline:none" onchange="quq(${it.id},+this.value)"><span id="QP${it.id}" style="color:var(--gold);font-weight:700;font-size:11px;min-width:42px">${it.price}₪</span><button onclick="qrm(${it.id})" style="background:none;border:none;color:var(--pink);cursor:pointer;font-size:13px">✕</button>`;document.getElementById('QITEMS').appendChild(row);});sqt(0);qcalc();}

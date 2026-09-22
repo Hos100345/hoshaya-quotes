@@ -65,6 +65,13 @@ export default {
 
       }
 
+      if (path === "/gemini-audio" && request.method === "POST") {
+
+        return await handleGeminiAudio(request, env, headers);
+
+      }
+
+
       if (path === "/morning" && request.method === "POST") {
 
         return await handleMorning(request, env, headers);
@@ -131,6 +138,8 @@ async function handleGeminiText(request, env, headers) {
 
 
   const data = await res.json();
+
+  if (data.error) return err("Gemini: " + (data.error.message || "unknown"), 502, headers);
 
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
@@ -217,12 +226,114 @@ async function handleGeminiVision(request, env, headers) {
 
   const data = await res.json();
 
+  if (data.error) return err("Gemini: " + (data.error.message || "unknown"), 502, headers);
+
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 
   return ok({ text, candidates: data.candidates }, headers);
 
 }
 
+
+
+
+// ═══════════════════════════════════════════════════════════
+
+// GEMINI AUDIO (תמלול הקלטות)
+
+// ═══════════════════════════════════════════════════════════
+
+// Gemini מקבל רק חלק משמות ה-MIME שהדפדפן מייצר — ממפים לשמות שהוא מכיר.
+
+const AUDIO_MIME_FIX = {
+
+  "audio/mpeg": "audio/mp3",
+
+  "audio/mpga": "audio/mp3",
+
+  "audio/x-m4a": "audio/aac",
+
+  "audio/m4a": "audio/aac",
+
+  "audio/mp4": "audio/aac",
+
+  "audio/x-wav": "audio/wav",
+
+  "audio/vnd.wave": "audio/wav",
+
+  "audio/opus": "audio/ogg",
+
+};
+
+async function handleGeminiAudio(request, env, headers) {
+
+  const body = await request.json();
+
+  const prompt = body.prompt;
+
+  const audioBase64 = body.audio; // data:audio/...;base64,xxxxx
+
+  if (!prompt || !audioBase64) return err("Missing prompt or audio", 400, headers);
+
+  const matches = audioBase64.match(/^data:([^;,]*);base64,(.+)$/);
+
+  if (!matches) return err("Invalid audio format", 400, headers);
+
+  // body.mime גובר: בוררי קבצים בנייד מחזירים לעיתים MIME ריק או שגוי.
+
+  const raw = body.mime || matches[1];
+
+  const mimeType = AUDIO_MIME_FIX[raw] || raw;
+
+  if (!mimeType.startsWith("audio/")) return err("Not an audio file: " + (raw || "unknown"), 400, headers);
+
+  const base64Data = matches[2];
+
+  const res = await fetch(GEMINI_URL, {
+
+    method: "POST",
+
+    headers: {
+
+      "Content-Type": "application/json",
+
+      "x-goog-api-key": env.GEMINI_KEY,
+
+    },
+
+    body: JSON.stringify({
+
+      contents: [
+
+        {
+
+          parts: [
+
+            { text: prompt },
+
+            { inlineData: { mimeType, data: base64Data } },
+
+          ],
+
+        },
+
+      ],
+
+      generationConfig: { temperature: 1, topK: 40, topP: 0.95, maxOutputTokens: 8192 },
+
+    }),
+
+  });
+
+  const data = await res.json();
+
+  if (data.error) return err("Gemini: " + (data.error.message || "unknown"), 502, headers);
+
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+  return ok({ text, candidates: data.candidates }, headers);
+
+}
 
 
 
