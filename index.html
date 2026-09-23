@@ -185,22 +185,9 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
 
 <!-- CATALOG -->
 <div id="T0" class="sec">
-  <div class="fscr" id="FSC">
-    <button class="chip on" onclick="fc('הכל',this)">הכל</button>
-    <button class="chip" onclick="fc('חישוקים',this)">⭕ חישוקים</button>
-    <button class="chip" onclick="fc('שערי כניסה',this)">🚪 שערים</button>
-    <button class="chip" onclick="fc('עמודים',this)">🏛️ עמודים</button>
-    <button class="chip" onclick="fc('שולחנות',this)">🪄 שולחנות</button>
-    <button class="chip" onclick="fc('פינות צילום',this)">📷 צילום</button>
-    <button class="chip" onclick="fc('מסגרות',this)">🖼️ מסגרות</button>
-    <button class="chip" onclick="fc('בר בלונים',this)">🎪 בר</button>
-    <button class="chip" onclick="fc('קרנבל כובעים',this)">🎩 קרנבל</button>
-    <button class="chip" onclick="fc('עיצוב חדרים',this)">🛏️ חדרים</button>
-    <button class="chip" onclick="fc('מיילרים',this)">✨ מיילרים</button>
-    <button class="chip" onclick="fc('בלוני צורות',this)">🐶 צורות</button>
-  </div>
+  <div class="fscr" id="FSC"></div>
   <div class="gg" id="GG"></div>
-  <div class="empty" id="EMP"><div class="ei">🎈</div><p>הקטלוג ריק<br>עבור ל<strong>העלאה</strong> כדי להוסיף תמונות!</p></div>
+  <div class="empty" id="EMP"></div>
 </div>
 
 <!-- UPLOAD -->
@@ -225,20 +212,7 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
         <div id="AID" class="adsc"></div>
       </div>
       <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:700">קטגוריה:</div>
-      <div class="cg" id="CG">
-        <button class="cb" data-cat="חישוקים" onclick="sc(this)"><span class="ci">⭕</span>חישוקים</button>
-        <button class="cb" data-cat="שערי כניסה" onclick="sc(this)"><span class="ci">🚪</span>שערים</button>
-        <button class="cb" data-cat="עמודים" onclick="sc(this)"><span class="ci">🏛️</span>עמודים</button>
-        <button class="cb" data-cat="שולחנות" onclick="sc(this)"><span class="ci">🪄</span>שולחנות</button>
-        <button class="cb" data-cat="פינות צילום" onclick="sc(this)"><span class="ci">📷</span>צילום</button>
-        <button class="cb" data-cat="מסגרות" onclick="sc(this)"><span class="ci">🖼️</span>מסגרות</button>
-        <button class="cb" data-cat="בר בלונים" onclick="sc(this)"><span class="ci">🎪</span>בר</button>
-        <button class="cb" data-cat="קרנבל כובעים" onclick="sc(this)"><span class="ci">🎩</span>קרנבל</button>
-        <button class="cb" data-cat="עיצוב חדרים" onclick="sc(this)"><span class="ci">🛏️</span>חדרים</button>
-        <button class="cb" data-cat="מיילרים" onclick="sc(this)"><span class="ci">✨</span>מיילרים</button>
-        <button class="cb" data-cat="בלוני צורות" onclick="sc(this)"><span class="ci">🐶</span>צורות</button>
-        <button class="cb" data-cat="כללי" onclick="sc(this)"><span class="ci">🎈</span>כללי</button>
-      </div>
+      <div class="cg" id="CG"></div>
       <div class="pb" id="PB"><div class="pf" id="PF"></div></div>
       <button class="btn bl" id="SVB" onclick="svs()" disabled>💾 שמור לקטלוג</button>
     </div>
@@ -247,15 +221,7 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
   <div class="bac" id="BAC">
     <div style="font-size:12px;font-weight:700;color:var(--bl);margin-bottom:7px" id="BCN"></div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:6px">שלח הכל לקטגוריה (ריק = AI יזהה):</div>
-    <select class="sel" id="BCS" style="margin-bottom:8px">
-      <option value="">AI יזהה כל תמונה בנפרד</option>
-      <option value="חישוקים">⭕ חישוקים</option><option value="שערי כניסה">🚪 שערים</option>
-      <option value="עמודים">🏛️ עמודים</option><option value="שולחנות">🪄 שולחנות</option>
-      <option value="פינות צילום">📷 פינות צילום</option><option value="מסגרות">🖼️ מסגרות</option>
-      <option value="בר בלונים">🎪 בר בלונים</option><option value="קרנבל כובעים">🎩 קרנבל</option>
-      <option value="עיצוב חדרים">🛏️ חדרים</option><option value="מיילרים">✨ מיילרים</option>
-      <option value="בלוני צורות">🐶 צורות</option><option value="כללי">🎈 כללי</option>
-    </select>
+    <select class="sel" id="BCS" style="margin-bottom:8px"></select>
     <div class="bbt">
       <button class="bai" onclick="rbAI()">✦ זהה עם AI</button>
       <button class="bsv" onclick="svb()">💾 שמור הכל</button>
@@ -545,7 +511,7 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
   <div class="msh">
     <div class="mhdl"></div>
     <div class="mttl" id="DMTTL">🔗 Google Drive</div>
-    <div class="mtxt" id="DMTXT">התמונות יישמרו ב-Google Drive שלך בתיקייה <strong>📸 קטלוג בלונים</strong>, ממוינות לפי קטגוריה.</div>
+    <div class="mtxt" id="DMTXT">הקטלוג נקרא מ-<strong>📸 קטלוג בלונים</strong> בדרייב שלך. כל תת-תיקייה היא קטגוריה, וכל תמונה שתשים שם תופיע כאן.</div>
     <button class="mbt p" id="DMBTN" onclick="driveLogin()">התחבר עם Google</button>
     <button class="mbt s" onclick="closeDM()">סגור</button>
   </div>
@@ -559,7 +525,6 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
 
 <script>
 // ── CONSTANTS ──
-const CATS=['חישוקים','שערי כניסה','עמודים','שולחנות','פינות צילום','מסגרות','בר בלונים','קרנבל כובעים','עיצוב חדרים','מיילרים','בלוני צורות','כללי'];
 const PL={"שולחן בסיסי (3 בלונים+בסיס)":{b:30,u:"שולחן"},"שולחן מורחב":{b:70,u:"שולחן"},"שולחן פרימיום":{b:120,u:"שולחן"},"חישוק בלונים":{b:800,l:600,u:"יח'"},"חישוק בלונים עם במות":{b:1200,l:900,u:"יח'"},"שער כניסה":{b:600,l:400,u:"יח'"},"עמוד בלונים":{b:150,u:"עמוד"},"פינת צילום מלאה":{b:1200,u:"יח'"},"מסגרת":{b:400,u:"יח'"},"בר בלונים (שעה אחת)":{b:800,u:"שעה"},"בר בלונים (2+ שעות)":{b:600,u:"שעה"},"מפעיל שני":{b:600,u:"שעה"},"קרנבל כובעים 60 כובעים":{b:1300,u:"אירוע"},"קרנבל כובעים 100 כובעים":{b:2100,u:"אירוע"},"עיצוב חדר Standard":{b:500,u:"אירוע"},"עיצוב חדר Deluxe":{b:750,u:"אירוע"},"עיצוב חדר VIP":{b:1000,u:"אירוע"},"סדנה חד-פעמית":{b:700,u:"סדנה"},"סדנת יום הולדת":{b:700,u:"סדנה"},"מפגש קורס בלונים":{b:400,u:"מפגש"},"בלון לטקס + הליום":{b:5,u:"יח'"},'מיילר לב 18" הליום':{b:10,u:"יח'"},'מיילר לב 18" + כיתוב הליום':{b:20,u:"יח'"},'מיילר לב 18" + תמונה הליום':{b:40,u:"יח'"},'מיילר 22" הליום':{b:25,u:"יח'"},"מיילר מספר קטן + בסיס":{b:15,u:"ספרה"}};
 const HM=['תשרי','חשוון','כסלו','טבת','שבט','אדר','אדר א׳','אדר ב׳','ניסן','אייר','סיוון','תמוז','אב','אלול'];
 const HD=["א׳","ב׳","ג׳","ד׳","ה׳","ו׳","ז׳","ח׳","ט׳","י׳","י״א","י״ב","י״ג","י״ד","ט״ו","ט״ז","י״ז","י״ח","י״ט","כ׳","כ״א","כ״ב","כ״ג","כ״ד","כ״ה","כ״ו","כ״ז","כ״ח","כ״ט","ל׳"];
@@ -572,6 +537,8 @@ const MSC='58854R0q&Q.^*sVu6zW+4h7NzUFB[1sP';
 
 // ── STATE ──
 let cat=[],cF='הכל',cT=0,cFile=null,cData=null,sCat=null,uM='s',bF=[],bC=[];
+let driveFolders=[];   // [{id,name}] — תת-התיקיות של 📸 קטלוג בלונים = הקטגוריות
+function catNames(){return driveFolders.map(f=>f.name);}
 let qIt=[],qLoc=false,qHist=[],pQ=null,eC=0;
 
 // ── BG ──
@@ -580,64 +547,127 @@ const BGB=document.getElementById('BGB');
 for(let i=0;i<12;i++){const b=document.createElement('div');b.className='bb';const s=40+Math.random()*60;b.style.cssText=`width:${s}px;height:${s*1.2}px;left:${Math.random()*100}%;color:${cols[i%5]};background:${cols[i%5]};animation-duration:${14+Math.random()*18}s;animation-delay:${-Math.random()*20}s;`;BGB.appendChild(b);}
 
 // ── NAV ──
-function sw(i){cT=i;[0,1,2,3,4].forEach(j=>{document.getElementById(`T${j}`).style.display=j===i?'block':'none';document.getElementById(`nt${j}`).classList.toggle('on',j===i);document.getElementById(`NB${j}`).classList.toggle('on',j===i);});if(i===0)rg();if(i===2)qcalc();if(i===4){renderInv();loadInv();}}
+function sw(i){cT=i;[0,1,2,3,4].forEach(j=>{document.getElementById(`T${j}`).style.display=j===i?'block':'none';document.getElementById(`nt${j}`).classList.toggle('on',j===i);document.getElementById(`NB${j}`).classList.toggle('on',j===i);});if(i===0){rg();if(isDriveReady())loadDriveCatalog();}if(i===2)qcalc();if(i===4){renderInv();loadInv();}}
 
-// ── CATALOG ──
-function loadCat(){try{const s=localStorage.getItem('hcat4');if(s)cat=JSON.parse(s);}catch(e){}rg();}
-function saveCat(){try{localStorage.setItem('hcat4',JSON.stringify(cat));}catch(e){}}
-function fc(c,btn){cF=c;document.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));btn.classList.add('on');rg();}
-function rg(){const g=document.getElementById('GG'),e=document.getElementById('EMP');const fl=cF==='הכל'?cat:cat.filter(i=>i.cat===cF);if(!fl.length){g.innerHTML='';e.style.display='block';return;}e.style.display='none';g.innerHTML=fl.map(it=>`<div class="gi" onclick="shi(${it.id})"><img src="${it.d}" alt="${it.cat}" loading="lazy"><div class="gl">${it.cat}<div class="gd">${it.dt||''}</div></div><button class="sfb" onclick="event.stopPropagation();shi(${it.id})">📤</button><button class="dfb" onclick="event.stopPropagation();del(${it.id})">✕</button></div>`).join('');}
-function del(id){cat=cat.filter(i=>i.id!==id);saveCat();rg();toast('🗑️ נמחק');}
-async function shi(id){const it=cat.find(i=>i.id==id);if(!it)return;try{const r=await fetch(it.d);const bl=await r.blob();const f=new File([bl],`balloon.jpg`,{type:bl.type});if(navigator.share&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:`🎈 ${it.cat}`,text:`עיצוב ${it.cat} | הושעיה אמן בלונים | 050-5918734`});}else{const a=document.createElement('a');a.href=it.d;a.download='balloon.jpg';a.click();toast('📥 הורד');}}catch(e){if(e.name!=='AbortError')toast('❌ שגיאה',1);}}
+// ── CATALOG — תיקיות Google Drive הן הקטגוריות ──
+async function initCatalog(){
+  loadDriveToken();
+  buildCatChips();buildUploadTargets();
+  if(isDriveReady())await loadDriveCatalog();else rg();
+}
+function buildCatChips(){
+  const wrap=document.getElementById('FSC');
+  const names=['הכל',...catNames()];
+  if(cat.some(i=>i.cat==='כללי')&&!names.includes('כללי'))names.push('כללי');
+  if(!names.includes(cF))cF='הכל';
+  wrap.innerHTML=names.map(n=>`<button class="chip${n===cF?' on':''}">${escHtml(n)}</button>`).join('');
+  [...wrap.querySelectorAll('.chip')].forEach((b,idx)=>{
+    b.onclick=()=>{cF=names[idx];wrap.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));b.classList.add('on');rg();};
+  });
+}
+function buildUploadTargets(){
+  const cg=document.getElementById('CG');
+  cg.innerHTML=driveFolders.map(f=>`<button class="cb" data-id="${escHtml(f.id)}" data-cat="${escHtml(f.name)}"><span class="ci">📁</span>${escHtml(f.name)}</button>`).join('')
+    +'<button class="cb" data-id="" data-cat="__new__"><span class="ci">＋</span>תיקייה חדשה</button>';
+  cg.querySelectorAll('.cb').forEach(b=>b.onclick=()=>sc(b));
+  document.getElementById('BCS').innerHTML='<option value="">AI יזהה כל תמונה בנפרד</option>'
+    +driveFolders.map(f=>`<option value="${escHtml(f.name)}">📁 ${escHtml(f.name)}</option>`).join('');
+}
+function rg(){
+  const g=document.getElementById('GG'),e=document.getElementById('EMP');
+  if(!isDriveReady()){
+    g.innerHTML='';
+    e.innerHTML='<div class="ei">🔗</div><p>הקטלוג יושב ב-Google Drive<br>לחץ <strong>Drive</strong> למעלה כדי להתחבר</p>';
+    e.style.display='block';return;
+  }
+  const fl=cF==='הכל'?cat:cat.filter(i=>i.cat===cF);
+  if(!fl.length){
+    g.innerHTML='';
+    e.innerHTML=`<div class="ei">🎈</div><p>אין תמונות ${cF==='הכל'?'בקטלוג':'בקטגוריה הזו'}<br>אפשר להעלות כאן, או פשוט לשים קובץ בתיקייה בדרייב</p>`;
+    e.style.display='block';return;
+  }
+  e.style.display='none';
+  g.innerHTML=fl.map(it=>`<div class="gi" onclick="shi('${it.id}')"><img src="${it.d}" alt="${escHtml(it.cat)}" loading="lazy" referrerpolicy="no-referrer"><div class="gl">${escHtml(it.cat)}<div class="gd">${it.dt||''}</div></div><button class="sfb" onclick="event.stopPropagation();shi('${it.id}')">📤</button><button class="dfb" onclick="event.stopPropagation();del('${it.id}')">✕</button></div>`).join('');
+}
+async function del(id){
+  const it=cat.find(i=>i.id===id);
+  if(!it)return;
+  if(!confirm('להעביר את התמונה לאשפה בדרייב?'))return;
+  try{
+    await gFetch(`https://www.googleapis.com/drive/v3/files/${it.driveId}`,{method:'PATCH',body:JSON.stringify({trashed:true})});
+    cat=cat.filter(i=>i.id!==id);rg();toast('🗑️ הועבר לאשפה בדרייב');
+  }catch(e){toast('❌ '+e.message,1);}
+}
+// שיתוף מוריד את הקובץ המלא מהדרייב, לא את התמונה הממוזערת
+async function shi(id){
+  const it=cat.find(i=>i.id===id);
+  if(!it)return;
+  try{
+    const r=await fetch(`https://www.googleapis.com/drive/v3/files/${it.driveId}?alt=media`,{headers:{Authorization:`Bearer ${gToken}`}});
+    if(!r.ok)throw new Error('Drive '+r.status);
+    const bl=await r.blob();
+    const f=new File([bl],it.name||'balloon.jpg',{type:bl.type||'image/jpeg'});
+    if(navigator.share&&navigator.canShare&&navigator.canShare({files:[f]})){
+      await navigator.share({files:[f],title:`🎈 ${it.cat}`,text:`עיצוב ${it.cat} | הושעיה אמן בלונים | 050-5918734`});
+    }else{
+      const u=URL.createObjectURL(bl);const a=document.createElement('a');a.href=u;a.download=f.name;a.click();
+      setTimeout(()=>URL.revokeObjectURL(u),5000);toast('📥 הורד');
+    }
+  }catch(e){if(e.name!=='AbortError')toast('❌ '+e.message,1);}
+}
 
 // ── UPLOAD ──
 function sm(m){uM=m;document.getElementById('M0').classList.toggle('on',m==='s');document.getElementById('M1').classList.toggle('on',m==='b');if(m==='s'){document.getElementById('DICO').textContent='📸';document.getElementById('DTTI').textContent='בחר תמונה';document.getElementById('DSUB').textContent='לחץ או גרור תמונה';document.getElementById('BGD').style.display='none';document.getElementById('BAC').classList.remove('v');}else{document.getElementById('DICO').textContent='📁';document.getElementById('DTTI').textContent='בחר תיקייה / מרובה תמונות';document.getElementById('DSUB').textContent='לחץ לבחירת מרובה תמונות';document.getElementById('PC').classList.remove('v');}}
-function tu(){if(uM==='s')document.getElementById('fi').click();else document.getElementById('bi').click();}
-async function hs(files){if(!files||!files.length)return;cFile=files[0];const r=new FileReader();r.onload=async e=>{cData=e.target.result;document.getElementById('PI').src=cData;document.getElementById('PC').classList.add('v');sCat=null;document.querySelectorAll('.cb').forEach(b=>b.classList.remove('on'));document.getElementById('SVB').disabled=true;document.getElementById('AIR').innerHTML=`<div class="anl"><div class="dots"><span></span><span></span><span></span></div> מנתח...</div>`;document.getElementById('AID').textContent='';await aiImg(cData);};r.readAsDataURL(cFile);}
-function sc(btn){document.querySelectorAll('.cb').forEach(b=>b.classList.remove('on'));btn.classList.add('on');sCat=btn.dataset.cat;document.getElementById('SVB').disabled=false;}
-async function svs(){if(!cFile||!sCat)return;
-  const btn=document.getElementById('SVB');btn.disabled=true;btn.textContent='⏳ שומר...';
+function tu(){if(!isDriveReady()){toast('❌ יש להתחבר ל-Drive קודם',1);return;}if(uM==='s')document.getElementById('fi').click();else document.getElementById('bi').click();}
+async function hs(files){if(!files||!files.length)return;cFile=files[0];const r=new FileReader();r.onload=async e=>{cData=e.target.result;document.getElementById('PI').src=cData;document.getElementById('PC').classList.add('v');sCat=null;document.querySelectorAll('#CG .cb').forEach(b=>b.classList.remove('on'));document.getElementById('SVB').disabled=true;document.getElementById('AIR').innerHTML=`<div class="anl"><div class="dots"><span></span><span></span><span></span></div> מנתח...</div>`;document.getElementById('AID').textContent='';await aiImg(cData);};r.readAsDataURL(cFile);}
+function sc(btn){
+  document.querySelectorAll('#CG .cb').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const name=btn.dataset.cat;
+  if(name==='__new__'){
+    const n=(prompt('שם התיקייה החדשה בדרייב:')||'').trim();
+    if(!n){btn.classList.remove('on');sCat=null;document.getElementById('SVB').disabled=true;return;}
+    sCat={id:null,name:n};
+  }else sCat={id:btn.dataset.id,name:name};
+  document.getElementById('SVB').disabled=false;
+}
+async function svs(){
+  if(!cFile||!sCat)return;
+  if(!isDriveReady()){toast('❌ יש להתחבר ל-Drive',1);return;}
+  const btn=document.getElementById('SVB');btn.disabled=true;btn.textContent='⏳ מעלה...';
   const pb=document.getElementById('PB'),pf=document.getElementById('PF');pb.classList.add('v');pf.style.width='30%';
-  const item={id:Date.now(),cat:sCat,d:cData,dt:new Date().toLocaleDateString('he-IL')};
-  // Upload to Drive if connected
-  if(isDriveReady()){
-    try{
-      pf.style.width='60%';
-      const dr=await uploadToDrive(cFile,sCat);
-      if(dr.id){item.driveId=dr.id;item.fromDrive=true;
-        // Use thumbnail from Drive (better quality, no base64 storage)
-        if(dr.thumbnailLink)item.d=dr.thumbnailLink.replace('=s220','=s800');
-      }
-    }catch(e){console.error('Drive upload:',e);}
-  }
-  pf.style.width='90%';
-  cat.unshift(item);saveCat();pf.style.width='100%';await dl(300);
-  toast(`✅ נשמר${isDriveReady()?' ב-Drive':''}!`);
-  cFile=null;cData=null;sCat=null;
-  document.getElementById('PC').classList.remove('v');document.getElementById('fi').value='';
-  btn.disabled=true;btn.textContent='💾 שמור לקטלוג';pb.classList.remove('v');pf.style.width='0%';}
+  try{
+    const folderId=sCat.id||await ensureFolderByName(sCat.name);
+    pf.style.width='65%';
+    await uploadToDrive(cFile,folderId);
+    pf.style.width='100%';
+    toast('✅ נשמר בדרייב');
+    cFile=null;cData=null;sCat=null;
+    document.getElementById('PC').classList.remove('v');document.getElementById('fi').value='';
+    await loadDriveCatalog();
+  }catch(e){toast('❌ '+e.message,1);}
+  finally{btn.disabled=true;btn.textContent='💾 שמור לקטלוג';pb.classList.remove('v');pf.style.width='0%';}
+}
 async function hb(files){if(!files||!files.length)return;bF=Array.from(files);bC=new Array(bF.length).fill(null);const g=document.getElementById('BGD');g.style.display='grid';g.innerHTML='';bF.forEach((f,i)=>{const d=document.createElement('div');d.className='bit';d.id=`BI${i}`;const img=document.createElement('img');img.loading='lazy';const bc=document.createElement('div');bc.className='bca';bc.id=`BC${i}`;bc.textContent='?';const ov=document.createElement('div');ov.className='bov';ov.id=`BO${i}`;ov.textContent='⏳';d.appendChild(img);d.appendChild(bc);d.appendChild(ov);g.appendChild(d);const r=new FileReader();r.onload=e=>img.src=e.target.result;r.readAsDataURL(f);});document.getElementById('BCN').textContent=`${bF.length} תמונות`;document.getElementById('BAC').classList.add('v');}
 async function rbAI(){toast('🤖 מנתח...');for(let i=0;i<bF.length;i++){const ov=document.getElementById(`BO${i}`);if(ov)ov.textContent='🔍';await new Promise(res=>{const r=new FileReader();r.onload=async e=>{const c=await aiQ(e.target.result);bC[i]=c;const bc=document.getElementById(`BC${i}`);if(bc)bc.textContent=c||'?';if(ov)ov.textContent=c?'✅':'⚠️';res();};r.readAsDataURL(bF[i]);});}toast('✅ זיהוי הושלם!');}
 async function svb(){
+  if(!isDriveReady()){toast('❌ יש להתחבר ל-Drive',1);return;}
   const mc=document.getElementById('BCS').value;
-  const btn=document.querySelector('.bsv');if(btn){btn.disabled=true;btn.textContent='⏳ שומר...';}
-  let saved=0;
+  const btn=document.querySelector('.bsv');if(btn){btn.disabled=true;btn.textContent='⏳ מעלה...';}
+  let saved=0,failed=0;
   for(let i=0;i<bF.length;i++){
-    const c=mc||bC[i]||'כללי';
-    const data=await new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.readAsDataURL(bF[i]);});
-    const item={id:Date.now()+i,cat:c,d:data,dt:new Date().toLocaleDateString('he-IL')};
-    if(isDriveReady()){
-      try{const dr=await uploadToDrive(bF[i],c);if(dr.id){item.driveId=dr.id;item.fromDrive=true;if(dr.thumbnailLink)item.d=dr.thumbnailLink.replace('=s220','=s800');}}
-      catch(e){}
-    }
-    cat.unshift(item);saved++;
-    // Update progress in batch overlay
-    const ov=document.getElementById(`BO${i}`);if(ov)ov.textContent='✅';
+    const name=mc||bC[i]||'כללי';
+    const ov=document.getElementById(`BO${i}`);
+    try{
+      const folderId=(driveFolders.find(f=>f.name===name)||{}).id||await ensureFolderByName(name);
+      await uploadToDrive(bF[i],folderId);
+      saved++;if(ov)ov.textContent='✅';
+    }catch(e){failed++;if(ov)ov.textContent='❌';}
   }
-  saveCat();
-  toast(`✅ ${saved} תמונות נשמרו${isDriveReady()?' ב-Drive':''}!`);
+  toast(failed?`✅ ${saved} הועלו, ❌ ${failed} נכשלו`:`✅ ${saved} תמונות הועלו לדרייב`,failed?1:0);
   bF=[];bC=[];document.getElementById('BGD').style.display='none';document.getElementById('BAC').classList.remove('v');document.getElementById('bi').value='';
   if(btn){btn.disabled=false;btn.textContent='💾 שמור הכל';}
+  await loadDriveCatalog();
 }
 const DZ=document.getElementById('DZ');DZ.addEventListener('dragover',e=>{e.preventDefault();DZ.classList.add('ov');});DZ.addEventListener('dragleave',()=>DZ.classList.remove('ov'));DZ.addEventListener('drop',e=>{e.preventDefault();DZ.classList.remove('ov');const f=e.dataTransfer.files;if(f.length===1)hs(f);else hb(f);});
 
@@ -659,10 +689,12 @@ function parseAIJson(text){
 async function aiImg(b64){const c=await aiQ(b64,true);if(c)document.getElementById('AIR').textContent=c;}
 async function aiQ(b64,v=false){
   try{
-    const text=await workerAI('/gemini-vision',{prompt:`בחר קטגוריה אחת מ: ${CATS.join(', ')}\nJSON בלבד: {"category":"...","description":"..."}`,image:b64});
+    const names=catNames();
+    if(!names.length)return null;
+    const text=await workerAI('/gemini-vision',{prompt:`בחר קטגוריה אחת מ: ${names.join(', ')}\nJSON בלבד: {"category":"...","description":"..."}`,image:b64});
     const p=parseAIJson(text);
     if(v)document.getElementById('AID').textContent=p.description||'';
-    return CATS.includes(p.category)?p.category:'כללי';
+    return names.includes(p.category)?p.category:null;
   }catch(e){
     if(v){document.getElementById('AIR').textContent='בחר ידנית';document.getElementById('AID').textContent=e.message;}
     return null;
@@ -758,6 +790,25 @@ function sbClient(){
 }
 function sAuthSt(t,m){const el=document.getElementById('INVAUTHST');el.className=`st ${t}`;el.textContent=m;el.style.display='block';}
 
+function isAuthError(err){
+  if(!err)return false;
+  const code=String(err.code||''),msg=String(err.message||'').toLowerCase();
+  return code==='PGRST301'||code==='PGRST302'||code==='401'||err.status===401
+    ||msg.includes('jwt')||msg.includes('expired')||msg.includes('unauthor')
+    ||msg.includes('not authenticated')||msg.includes('invalid authentication')
+    ||msg.includes('invalid claim')||msg.includes('refresh token');
+}
+// פג תוקף / אין הרשאה — לא להציג רשימה ריקה, שנראית כאילו המלאי נמחק
+function showInvExpired(){
+  invUser=null;invItems=[];updateInvStats();
+  document.getElementById('INVMAIN').style.display='none';
+  document.getElementById('INVAUTH').style.display='block';
+  const last=localStorage.getItem('inv_last_email')||'';
+  const inp=document.getElementById('INVEMAIL');
+  if(last&&!inp.value)inp.value=last;
+  sAuthSt('er','⚠️ פג תוקף החיבור — התחבר מחדש. המלאי עצמו שמור בשרת ולא נמחק.');
+}
+
 async function initInv(){
   const c=sbClient();
   if(!c){showInvGate('❌ ספריית Supabase לא נטענה — בדוק חיבור לרשת');return;}
@@ -782,10 +833,18 @@ function applyInvSession(session){
     return;
   }
   invUser=session?.user||null;
-  if(!invUser){invItems=[];updateInvStats();showInvGate();return;}
+  if(!invUser){
+    invItems=[];updateInvStats();
+    const last=localStorage.getItem('inv_last_email')||'';
+    const inp=document.getElementById('INVEMAIL');
+    if(last&&!inp.value)inp.value=last;
+    showInvGate();
+    return;
+  }
   document.getElementById('INVAUTH').style.display='none';
   document.getElementById('INVMAIN').style.display='block';
   document.getElementById('INVWHO').textContent=invUser.email;
+  try{localStorage.setItem('inv_last_email',invUser.email);}catch(e){}
   loadInv();
 }
 async function invLogin(){
@@ -796,7 +855,7 @@ async function invLogin(){
   const {error}=await sbClient().auth.signInWithOtp({email,options:{emailRedirectTo:location.href.split('#')[0]}});
   btn.disabled=false;
   if(error)sAuthSt('er','❌ '+error.message);
-  else sAuthSt('ok','✅ נשלח קישור לאימייל — יש לפתוח אותו במכשיר הזה');
+  else{try{localStorage.setItem('inv_last_email',email);}catch(e){}sAuthSt('ok','✅ נשלח קישור לאימייל — יש לפתוח אותו במכשיר הזה');}
 }
 async function invLogout(){await sbClient().auth.signOut();toast('התנתקת מהמלאי');}
 
@@ -809,8 +868,16 @@ async function loadInv(){
   if(!invItems.length)list.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">טוען מלאי…</div>';
   const {data,error}=await c.from('items').select('id,name,category,qty,min_qty').eq('active',true).order('category').order('name');
   if(error){
-    list.innerHTML=`<div style="text-align:center;padding:26px;color:var(--pink);font-size:12px;line-height:1.7">❌ ${escHtml(error.message)}</div>`;
+    if(isAuthError(error)){showInvExpired();return;}
+    list.innerHTML=`<div style="text-align:center;padding:26px;color:var(--pink);font-size:12px;line-height:1.7">❌ ${escHtml(error.message)}<br><button onclick="loadInv()" style="margin-top:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:7px 16px;border-radius:8px;font-family:'Heebo',sans-serif;font-size:12px;cursor:pointer">↻ נסה שוב</button></div>`;
     return;
+  }
+  // RLS מחזיר 200 עם 0 שורות כשאין הרשאה — זהה לחלוטין למלאי ריק.
+  // לפני שמכריזים "ריק", מוודאים שהסשן באמת חי ושייך לבעלים.
+  if(!(data||[]).length){
+    const {data:{session}}=await c.auth.getSession();
+    const em=(session?.user?.email||'').toLowerCase();
+    if(!em||em!==INV_OWNER){showInvExpired();return;}
   }
   invItems=(data||[]).map(rowToItem);
   renderInv();
@@ -827,7 +894,10 @@ function pushQty(id){
     const it=invItems.find(x=>x.id===id);
     if(!it)return;
     const {error}=await sbClient().from('items').update({qty:it.qty,updated_by:APP_SOURCE}).eq('id',id);
-    if(error){toast('❌ לא נשמר: '+error.message,1);loadInv();}
+    if(error){
+      if(isAuthError(error)){showInvExpired();return;}
+      toast('❌ לא נשמר: '+error.message,1);loadInv();
+    }
   },500));
 }
 function flushQty(){_qtyTimers.forEach((t,id)=>{clearTimeout(t);_qtyTimers.delete(id);const it=invItems.find(x=>x.id===id);if(it)sbClient().from('items').update({qty:it.qty,updated_by:APP_SOURCE}).eq('id',id);});}
@@ -894,7 +964,10 @@ async function saveInvItem(){
   const {error}=id
     ? await c.from('items').update(row).eq('id',Number(id))
     : await c.from('items').insert(row);
-  if(error){toast('❌ '+error.message,1);return;}
+  if(error){
+    if(isAuthError(error)){closeInvM();showInvExpired();return;}
+    toast('❌ '+error.message,1);return;
+  }
   closeInvM();await loadInv();toast(id?'✅ עודכן':'✅ נוסף');
 }
 function closeInvM(){document.getElementById('INVM').classList.remove('open');}
@@ -1014,6 +1087,7 @@ async function applyImport(){
   }
   btn.disabled=false;btn.textContent='✅ אשר ומזג למלאי';
   closeImp();
+  if(err&&isAuthError(err)){showInvExpired();return;}
   await loadInv();
   if(err)toast('❌ '+err.message,1);
   else toast(`✅ ${inserts.length} נוספו, ${updates.length} עודכנו`);
@@ -1074,10 +1148,9 @@ function copyMissing(){
 
 // ── DRIVE ──
 const GCLIENT_ID='814302848975-2pis91kp20n3eg92bv7gdmlvfsh9fl6j.apps.googleusercontent.com';
-const GSCOPES='https://www.googleapis.com/auth/drive.file';
+const GSCOPES='https://www.googleapis.com/auth/drive';
 const CATALOG_FOLDER_NAME='📸 קטלוג בלונים';
 let gToken=null,gTokenExpiry=0,catalogFolderId=null;
-const catFolderIds={};
 
 function isDriveReady(){return gToken&&Date.now()<gTokenExpiry;}
 
@@ -1093,6 +1166,7 @@ function driveLogin(){
       localStorage.setItem('gdrive_expiry',gTokenExpiry);
       updateDriveBtn();
       toast('✅ מחובר ל-Google Drive!');
+      loadDriveCatalog();
       document.getElementById('DMBTN').textContent='✅ מחובר';
       document.getElementById('DMTXT').textContent='מחובר בהצלחה! התמונות יישמרו ב-Drive אוטומטית.';
       closeDM();
@@ -1112,54 +1186,93 @@ function updateDriveBtn(){
   else{btn.textContent='Drive';btn.style.color='var(--bl)';}
 }
 
-async function ensureCatalogFolder(){
+async function findCatalogRoot(){
   if(catalogFolderId)return catalogFolderId;
-  // Search for existing folder
-  const res=await gFetch(`https://www.googleapis.com/drive/v3/files?q=name='${CATALOG_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name)`);
-  if(res.files&&res.files.length>0){catalogFolderId=res.files[0].id;return catalogFolderId;}
-  // Create it
+  const q=`name='${CATALOG_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+  const res=await gFetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)&pageSize=10`);
+  if(res.files&&res.files.length){catalogFolderId=res.files[0].id;return catalogFolderId;}
   const cr=await gFetch('https://www.googleapis.com/drive/v3/files',{method:'POST',body:JSON.stringify({name:CATALOG_FOLDER_NAME,mimeType:'application/vnd.google-apps.folder'})});
+  if(!cr.id)throw new Error(cr.error?.message||'לא ניתן ליצור את תיקיית הקטלוג');
   catalogFolderId=cr.id;return catalogFolderId;
 }
 
-async function ensureCatSubFolder(catName){
-  if(catFolderIds[catName])return catFolderIds[catName];
-  const parent=await ensureCatalogFolder();
-  const res=await gFetch(`https://www.googleapis.com/drive/v3/files?q=name='${catName}' and '${parent}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id)`);
-  if(res.files&&res.files.length>0){catFolderIds[catName]=res.files[0].id;return catFolderIds[catName];}
-  const cr=await gFetch('https://www.googleapis.com/drive/v3/files',{method:'POST',body:JSON.stringify({name:catName,mimeType:'application/vnd.google-apps.folder',parents:[parent]})});
-  catFolderIds[catName]=cr.id;return catFolderIds[catName];
+async function ensureFolderByName(name){
+  const hit=driveFolders.find(f=>f.name===name);
+  if(hit)return hit.id;
+  const root=await findCatalogRoot();
+  const cr=await gFetch('https://www.googleapis.com/drive/v3/files',{method:'POST',body:JSON.stringify({name,mimeType:'application/vnd.google-apps.folder',parents:[root]})});
+  if(!cr.id)throw new Error(cr.error?.message||'לא ניתן ליצור תיקייה');
+  driveFolders.push({id:cr.id,name});
+  return cr.id;
 }
 
-async function uploadToDrive(file,catName){
-  const folderId=await ensureCatSubFolder(catName);
-  const meta={name:`${catName}_${Date.now()}_${file.name}`,parents:[folderId]};
+async function uploadToDrive(file,folderId){
+  const meta={name:file.name,parents:[folderId]};
   const form=new FormData();
   form.append('metadata',new Blob([JSON.stringify(meta)],{type:'application/json'}));
   form.append('file',file);
-  const res=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webContentLink,thumbnailLink',{method:'POST',headers:{Authorization:`Bearer ${gToken}`},body:form});
-  return await res.json();
+  const res=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,thumbnailLink,createdTime',{method:'POST',headers:{Authorization:`Bearer ${gToken}`},body:form});
+  const data=await res.json().catch(()=>null);
+  if(!res.ok||!data||!data.id)throw new Error(data?.error?.message||`העלאה נכשלה (${res.status})`);
+  return data;
 }
 
+async function listDriveImages(folderId){
+  const q=`'${folderId}' in parents and mimeType contains 'image/' and trashed=false`;
+  const out=[];let token='';
+  for(let page=0;page<10;page++){
+    const url=`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=nextPageToken,files(id,name,thumbnailLink,createdTime)&orderBy=createdTime desc&pageSize=200`+(token?`&pageToken=${encodeURIComponent(token)}`:'');
+    const res=await gFetch(url);
+    if(res.error)throw new Error(res.error.message);
+    out.push(...(res.files||[]));
+    token=res.nextPageToken||'';
+    if(!token)break;
+  }
+  return out;
+}
+
+function driveItem(f,catName){
+  return{
+    id:f.id,driveId:f.id,cat:catName,name:f.name,fromDrive:true,
+    // thumbnailLink מגיע ב-=s220; מבקשים רזולוציה גבוהה יותר לרשת
+    d:(f.thumbnailLink||'').replace(/=s\d+(-c)?$/,'=s800'),
+    dt:f.createdTime?new Date(f.createdTime).toLocaleDateString('he-IL'):''
+  };
+}
+
+// הדרייב הוא מקור האמת של הקטלוג: תת-התיקיות הן הקטגוריות והתמונות נקראות מהן.
+// תמונה שתושם ידנית בתיקייה בדרייב תופיע כאן ברענון הלשונית.
 async function loadDriveCatalog(){
-  if(!isDriveReady())return;
+  if(!isDriveReady()){rg();return;}
   try{
-    const parent=await ensureCatalogFolder();
-    const res=await gFetch(`https://www.googleapis.com/drive/v3/files?q='${parent}' in parents and mimeType!='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name,thumbnailLink,createdTime)&orderBy=createdTime desc&pageSize=200`);
-    if(!res.files)return;
-    // Merge with local, add drive items not already in cat
-    const existingIds=new Set(cat.filter(i=>i.driveId).map(i=>i.driveId));
-    const newItems=res.files.filter(f=>!existingIds.has(f.id)).map(f=>{
-      const parts=f.name.split('_');
-      const catName=parts[0]||'כללי';
-      return{id:f.id,driveId:f.id,cat:catName,d:f.thumbnailLink?.replace('=s220','=s800')||'',dt:new Date(f.createdTime).toLocaleDateString('he-IL'),fromDrive:true};
-    });
-    if(newItems.length){cat=[...newItems,...cat];saveCat();rg();}
-  }catch(e){console.error('Drive load:',e);}
+    const root=await findCatalogRoot();
+    const q=`'${root}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+    const fres=await gFetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)&orderBy=name&pageSize=200`);
+    if(fres.error)throw new Error(fres.error.message);
+    driveFolders=(fres.files||[]).map(f=>({id:f.id,name:f.name}));
+    const out=[];
+    for(const f of await listDriveImages(root))out.push(driveItem(f,'כללי'));
+    for(const fo of driveFolders){
+      for(const f of await listDriveImages(fo.id))out.push(driveItem(f,fo.name));
+    }
+    cat=out;
+    buildCatChips();buildUploadTargets();rg();
+  }catch(e){
+    document.getElementById('GG').innerHTML='';
+    const em=document.getElementById('EMP');
+    em.innerHTML=`<div class="ei">⚠️</div><p>שגיאה בטעינת הקטלוג מהדרייב<br><span style="font-size:11px">${escHtml(e.message)}</span></p>`;
+    em.style.display='block';
+  }
 }
 
 async function gFetch(url,opts={}){
   const res=await fetch(url,{...opts,headers:{Authorization:`Bearer ${gToken}`,'Content-Type':'application/json',...(opts.headers||{})}});
+  if(res.status===401){
+    gToken=null;gTokenExpiry=0;
+    localStorage.removeItem('gdrive_token');localStorage.removeItem('gdrive_expiry');
+    updateDriveBtn();
+    throw new Error('החיבור ל-Drive פג — יש להתחבר מחדש');
+  }
   return await res.json();
 }
 
@@ -1172,13 +1285,11 @@ function toast(msg,isE=0){const t=document.getElementById('TOAST');t.textContent
 function dl(ms){return new Promise(r=>setTimeout(r,ms));}
 
 // ── INIT ──
-loadCat();
+initCatalog();
 initInv();
-loadDriveToken();
 radd();
 qcalc();
-// Try loading drive catalog after short delay (wait for Google script)
-setTimeout(()=>{if(isDriveReady())loadDriveCatalog();},2000);
+
 </script>
 </body>
 </html>
