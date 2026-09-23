@@ -557,7 +557,49 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
 
 <script>
 // ── CONSTANTS ──
-const PL={"שולחן בסיסי (3 בלונים+בסיס)":{b:30,u:"שולחן"},"שולחן מורחב":{b:70,u:"שולחן"},"שולחן פרימיום":{b:120,u:"שולחן"},"חישוק בלונים":{b:800,l:600,u:"יח'"},"חישוק בלונים עם במות":{b:1200,l:900,u:"יח'"},"שער כניסה":{b:600,l:400,u:"יח'"},"עמוד בלונים":{b:150,u:"עמוד"},"פינת צילום מלאה":{b:1200,u:"יח'"},"מסגרת":{b:400,u:"יח'"},"בר בלונים (שעה אחת)":{b:800,u:"שעה"},"בר בלונים (2+ שעות)":{b:600,u:"שעה"},"מפעיל שני":{b:600,u:"שעה"},"קרנבל כובעים 60 כובעים":{b:1300,u:"אירוע"},"קרנבל כובעים 100 כובעים":{b:2100,u:"אירוע"},"עיצוב חדר Standard":{b:500,u:"אירוע"},"עיצוב חדר Deluxe":{b:750,u:"אירוע"},"עיצוב חדר VIP":{b:1000,u:"אירוע"},"סדנה חד-פעמית":{b:700,u:"סדנה"},"סדנת יום הולדת":{b:700,u:"סדנה"},"מפגש קורס בלונים":{b:400,u:"מפגש"},"בלון לטקס + הליום":{b:5,u:"יח'"},'מיילר לב 18" הליום':{b:10,u:"יח'"},'מיילר לב 18" + כיתוב הליום':{b:20,u:"יח'"},'מיילר לב 18" + תמונה הליום':{b:40,u:"יח'"},'מיילר 22" הליום':{b:25,u:"יח'"},"מיילר מספר קטן + בסיס":{b:15,u:"ספרה"}};
+// מקור האמת: גיליון "מחירון הושעיה אמן בלונים 2026" בדרייב.
+// c=קטגוריה (לקיבוץ ברשימה ולהקשר ל-AI) · b=מחיר רגיל · l=מחיר תושב · u=יחידה
+// l מצוין רק כשהוא שונה מ-b. שינוי בגיליון — לעדכן כאן באותו סבב.
+const MIN_CALLOUT=500,TRAVEL_RATE=1.5;
+const PL={
+"עיצוב בסיסי (3 בלונים + בסיס)":{b:30,u:"לשולחן",c:"עיצוב שולחנות"},
+"עיצוב מורחב":{b:70,u:"לשולחן",c:"עיצוב שולחנות"},
+"עיצוב פרימיום":{b:120,u:"לשולחן",c:"עיצוב שולחנות"},
+"חישוק בלונים":{b:800,l:600,u:"יחידה",c:"תוספות עיצוב"},
+"חישוק בלונים עם במות":{b:1200,l:900,u:"יחידה",c:"תוספות עיצוב"},
+"שער כניסה":{b:600,l:400,u:"יחידה",c:"תוספות עיצוב"},
+"עמוד בלונים":{b:150,u:"עמוד",c:"תוספות עיצוב"},
+"פינת צילום מלאה":{b:1200,u:"יחידה",c:"תוספות עיצוב"},
+"מסגרת":{b:400,u:"יחידה",c:"תוספות עיצוב"},
+"בר בלונים - שעה אחת":{b:800,u:"שעה",c:"הפעלות"},
+"בר בלונים - שעתיים ומעלה":{b:600,u:"לשעה",c:"הפעלות"},
+"מפעיל שני":{b:600,u:"לשעה",c:"הפעלות"},
+"קרנבל כובעים 60 כובעים":{b:1300,u:"אירוע",c:"הפעלות"},
+"קרנבל כובעים 100 כובעים":{b:2100,u:"אירוע",c:"הפעלות"},
+"עיצוב חדר Standard":{b:500,u:"אירוע",c:"עיצוב חדרים"},
+"עיצוב חדר Deluxe":{b:750,u:"אירוע",c:"עיצוב חדרים"},
+"עיצוב חדר VIP Premium":{b:1000,u:"אירוע",c:"עיצוב חדרים"},
+"תוספת - פרחי בלונים":{b:100,u:"יחידה",c:"עיצוב חדרים"},
+"תוספת - מיילר עם הקדשה":{b:40,u:"יחידה",c:"עיצוב חדרים"},
+"תוספת - הליום":{b:10,u:"יחידה",c:"עיצוב חדרים"},
+"סדנה חד-פעמית":{b:700,u:"סדנה",c:"סדנאות וקורסים"},
+"סדנת יום הולדת":{b:700,u:"סדנה",c:"סדנאות וקורסים"},
+"מפגש קורס בלונים":{b:400,u:"מפגש",c:"סדנאות וקורסים"},
+"בלון לטקס - לא מנופח":{b:1,u:"יחידה",c:"חנות"},
+"בלון לטקס + הליום":{b:5,u:"יחידה",c:"חנות"},
+"בלון צורות":{b:5,u:"יחידה",c:"חנות"},
+'מיילר לב 18" - אוויר':{b:5,u:"יחידה",c:"חנות"},
+'מיילר לב 18" - הליום':{b:10,u:"יחידה",c:"חנות"},
+'מיילר לב 18" + כיתוב - אוויר':{b:15,u:"יחידה",c:"חנות"},
+'מיילר לב 18" + כיתוב - הליום':{b:20,u:"יחידה",c:"חנות"},
+'מיילר לב 18" + תמונה - הליום':{b:40,u:"יחידה",c:"חנות"},
+'מיילר 22" - אוויר':{b:15,u:"יחידה",c:"חנות"},
+'מיילר 22" - הליום':{b:25,u:"יחידה",c:"חנות"},
+'מיילר 32" - אוויר':{b:12,u:"יחידה",c:"חנות"},
+"מיילר מספר קטן + בסיס":{b:15,u:"לספרה",c:"חנות"},
+"בסיס מדרגה אחת":{b:5,u:"יחידה",c:"חנות"},
+"תוספת כיתוב מודפס":{b:10,u:"יחידה",c:"חנות"},
+"תוספת תמונה מודפסת":{b:30,u:"יחידה",c:"חנות"}};
 const HM=['תשרי','חשוון','כסלו','טבת','שבט','אדר','אדר א׳','אדר ב׳','ניסן','אייר','סיוון','תמוז','אב','אלול'];
 const HD=["א׳","ב׳","ג׳","ד׳","ה׳","ו׳","ז׳","ח׳","ט׳","י׳","י״א","י״ב","י״ג","י״ד","ט״ו","ט״ז","י״ז","י״ח","י״ט","כ׳","כ״א","כ״ב","כ״ג","כ״ד","כ״ה","כ״ו","כ״ז","כ״ח","כ״ט","ל׳"];
 const HY=[];for(let y=5715;y<=5810;y++)HY.push({v:y,l:`${y} (${y-3760})`});
@@ -845,8 +887,10 @@ async function aiCall(action,body){
 }
 // המחירון נשלח לשרת בכל ניתוח, כך שהמודל בוחר רק שמות שקיימים ב-PL
 function priceListText(){
-  return Object.entries(PL).map(([k,v])=>`- ${k}: ${v.b}₪`).join('\n')
-    +'\n- נסיעות: 1.5₪/ק"מ הלוך וחזור\n- תושבי בית חוגלה: הנחה 25%';
+  return Object.entries(PL).map(([k,v])=>
+      `- [${v.c}] ${k}: ${v.b}₪${(v.l&&v.l!==v.b)?` (תושב יישוב: ${v.l}₪)`:''} · ${v.u}`).join('\n')
+    +`\n- נסיעות: ${TRAVEL_RATE}₪/ק"מ הלוך וחזור · מינימום יציאה ${MIN_CALLOUT}₪`
+    +'\n- תושבי בית חוגלה: הנחה 25%';
 }
 // השרת מחזיר {name,qty}; המחיר מחושב כאן כי הוא תלוי ב-PL ובמצב התושב
 function quoteToUI(q){
@@ -896,7 +940,7 @@ async function qCal(){
   const ed=document.getElementById('QED')?.value||'';
   const phone=document.getElementById('QCP')?.value||'';
   const dist=+(document.getElementById('QDIST')?.value||0)||0;
-  const trv=Math.round(dist*2*1.5);
+  const trv=Math.round(dist*2*TRAVEL_RATE);
   const dp=+(document.getElementById('QDISC')?.value||0)||0;
   const tot=qIt.reduce((s,i)=>s+(i.price||0),0);
   const da=Math.round(tot*dp/100);
@@ -948,7 +992,7 @@ async function transcribeRec(){
   }catch(e){sRecSt('er',`❌ ${e.message}`);}
   document.getElementById('RECBTN').disabled=false;}
 function sRecSt(type,msg){const el=document.getElementById('RECST');el.className=`st ${type}`;el.textContent=msg;el.style.display='block';}
-function rParsedRec(p){document.getElementById('RECPD').style.display='block';let h='';if(p.clientName)h+=`👤 <b>שם:</b> ${p.clientName}<br>`;if(p.clientPhone)h+=`📞 <b>טלפון:</b> ${p.clientPhone}<br>`;if(p.eventType)h+=`🎉 <b>אירוע:</b> ${p.eventType}<br>`;if(validDate(p.eventDate))h+=`📅 <b>תאריך:</b> ${new Date(p.eventDate).toLocaleDateString('he-IL')}<br>`;if(p.distanceKm>0)h+=`🚗 ${p.distanceKm} ק"מ<br>`;if(p.isLocal)h+=`🏘️ <b>תושב/ת יישוב</b> — הנחה 25%<br>`;h+='<br>'+p.items.map(i=>PL[i.name]?`• ${i.name} × ${i.qty} — <b style="color:var(--gold)">${i.price}₪</b>`:`• ⚠️ ${i.name} × ${i.qty} — <span style="color:var(--pink)">לא במחירון</span>`).join('<br>');const tot=p.items.reduce((s,i)=>s+i.price,0)+Math.round((p.distanceKm||0)*2*1.5);h+=`<br><br><span style="color:var(--gold);font-weight:700">💰 סה"כ: ${tot}₪</span>`;document.getElementById('RECPDTXT').innerHTML=h;}
+function rParsedRec(p){document.getElementById('RECPD').style.display='block';let h='';if(p.clientName)h+=`👤 <b>שם:</b> ${p.clientName}<br>`;if(p.clientPhone)h+=`📞 <b>טלפון:</b> ${p.clientPhone}<br>`;if(p.eventType)h+=`🎉 <b>אירוע:</b> ${p.eventType}<br>`;if(validDate(p.eventDate))h+=`📅 <b>תאריך:</b> ${new Date(p.eventDate).toLocaleDateString('he-IL')}<br>`;if(p.distanceKm>0)h+=`🚗 ${p.distanceKm} ק"מ<br>`;if(p.isLocal)h+=`🏘️ <b>תושב/ת יישוב</b> — הנחה 25%<br>`;h+='<br>'+p.items.map(i=>PL[i.name]?`• ${i.name} × ${i.qty} — <b style="color:var(--gold)">${i.price}₪</b>`:`• ⚠️ ${i.name} × ${i.qty} — <span style="color:var(--pink)">לא במחירון</span>`).join('<br>');const tot=p.items.reduce((s,i)=>s+i.price,0)+Math.round((p.distanceKm||0)*2*TRAVEL_RATE);h+=`<br><br><span style="color:var(--gold);font-weight:700">💰 סה"כ: ${tot}₪</span>`;document.getElementById('RECPDTXT').innerHTML=h;}
 function recApply(){if(!recParsed)return;pQ=recParsed;qapply();}
 
 // ── INVENTORY — מקור האמת הוא Supabase, לא localStorage ──
@@ -1280,8 +1324,16 @@ function copyInv(){
     .then(()=>sImpSt('ok',`📋 ${invItems.length} פריטים הועתקו — אפשר לשלוח`))
     .catch(()=>sImpSt('er','ההעתקה נכשלה'));
 }
+function plOptions(sel){
+  const g={};
+  Object.entries(PL).forEach(([k,v])=>{(g[v.c]=g[v.c]||[]).push(k);});
+  return Object.entries(g).map(([cat,keys])=>
+    `<optgroup label="${escHtml(cat)}">`
+    +keys.map(k=>`<option value="${escHtml(k)}"${k===sel?' selected':''}>${escHtml(k)} · ${PL[k].b}₪</option>`).join('')
+    +'</optgroup>').join('');
+}
 function pfr(n,loc){const p=PL[n];if(!p)return 0;return(loc&&p.l)?p.l:p.b;}
-function qadd(){const c=document.getElementById('QITEMS');if(c.textContent.includes('לחץ'))c.innerHTML='';const id=Date.now();qIt.push({id,name:'',qty:1,price:0});const opts=Object.keys(PL).map(k=>`<option value="${k}">${k}</option>`).join('');const row=document.createElement('div');row.className='irow';row.id=`QR${id}`;row.innerHTML=`<select style="flex:2;background:transparent;border:none;color:var(--text);font-family:'Heebo',sans-serif;font-size:11px;outline:none;direction:rtl" onchange="qun(${id},this.value)"><option value="">בחר פריט...</option>${opts}</select><input type="number" min="1" value="1" style="width:38px;background:transparent;border:none;color:var(--text);text-align:center;font-family:'Heebo',sans-serif;font-size:11px;outline:none" onchange="quq(${id},+this.value)"><span id="QP${id}" style="color:var(--gold);font-weight:700;font-size:11px;min-width:42px"></span><button onclick="qrm(${id})" style="background:none;border:none;color:var(--pink);cursor:pointer;font-size:13px">✕</button>`;c.appendChild(row);qcalc();}
+function qadd(){const c=document.getElementById('QITEMS');if(c.textContent.includes('לחץ'))c.innerHTML='';const id=Date.now();qIt.push({id,name:'',qty:1,price:0});const opts=plOptions('');const row=document.createElement('div');row.className='irow';row.id=`QR${id}`;row.innerHTML=`<select style="flex:2;background:transparent;border:none;color:var(--text);font-family:'Heebo',sans-serif;font-size:11px;outline:none;direction:rtl" onchange="qun(${id},this.value)"><option value="">בחר פריט...</option>${opts}</select><input type="number" min="1" value="1" style="width:38px;background:transparent;border:none;color:var(--text);text-align:center;font-family:'Heebo',sans-serif;font-size:11px;outline:none" onchange="quq(${id},+this.value)"><span id="QP${id}" style="color:var(--gold);font-weight:700;font-size:11px;min-width:42px"></span><button onclick="qrm(${id})" style="background:none;border:none;color:var(--pink);cursor:pointer;font-size:13px">✕</button>`;c.appendChild(row);qcalc();}
 function qun(id,name){const it=qIt.find(i=>i.id===id);if(it){it.name=name;it.price=pfr(name,qLoc)*it.qty;}const el=document.getElementById(`QP${id}`);if(el)el.textContent=it&&it.price?it.price+'₪':'';qcalc();}
 function quq(id,qty){const it=qIt.find(i=>i.id===id);if(it){it.qty=qty;it.price=pfr(it.name,qLoc)*qty;}const el=document.getElementById(`QP${id}`);if(el)el.textContent=it&&it.price?it.price+'₪':'';qcalc();}
 function qrm(id){qIt=qIt.filter(i=>i.id!==id);const r=document.getElementById(`QR${id}`);if(r)r.remove();qcalc();}
@@ -1299,11 +1351,18 @@ function setQLoc(on){
 function qloc(){setQLoc(!qLoc);}
 // ה-AI מחזיר לפעמים "" או "ריק" בתאריך, ו-new Date על זה נותן Invalid Date
 function validDate(v){return /^\d{4}-\d{2}-\d{2}$/.test(String(v||''))&&!isNaN(new Date(v).getTime());}
-function qcalc(){const tot=qIt.reduce((s,i)=>s+(i.price||0),0);const dist=+(document.getElementById('QDIST')?.value||0)||0;const trv=Math.round(dist*2*1.5);const dp=+(document.getElementById('QDISC')?.value||0)||0;const da=Math.round(tot*dp/100);const grand=tot-da+trv;document.getElementById('QTOT').textContent=grand+' ₪';const tv=document.getElementById('QTRVL');if(tv)tv.textContent=trv>0?`כולל נסיעות: ${trv}₪`:'';const da_el=document.getElementById('QDAMT');if(da_el){da_el.style.display=dp>0?'inline':'none';da_el.textContent=`-${da}₪`;}const dr=document.getElementById('QDRSN');if(dr)dr.style.display=dp>0?'block':'none';document.getElementById('QPREV').textContent=waT();}
-function waT(){const n=document.getElementById('QCN')?.value||'הלקוח',ev=document.getElementById('QET')?.value||'האירוע',ed=document.getElementById('QED')?.value||'',ds=ed?new Date(ed).toLocaleDateString('he-IL'):'',dist=+(document.getElementById('QDIST')?.value||0)||0,trv=Math.round(dist*2*1.5),dp=+(document.getElementById('QDISC')?.value||0)||0,tot=qIt.reduce((s,i)=>s+(i.price||0),0),da=Math.round(tot*dp/100),grand=tot-da+trv,dr=document.getElementById('QDRTXT')?.value||`הנחה ${dp}%`,lines=qIt.filter(i=>i.name).map(i=>`• ${i.name} × ${i.qty} — ${i.price}₪`).join('\n')||'• (לא נבחרו פריטים)',trvl=trv>0?`\n• נסיעות — ${trv}₪`:'',disc=dp>0?`\n🎁 ${dr}: -${da}₪`:'';return `שלום ${n} 😊🎈\n\nהצעת מחיר עבור ${ev}${ds?' — '+ds:''}:\n\n${lines}${trvl}${disc}\n\n*סה"כ לתשלום: ${grand}₪*\n\nתשלום ב-Bit / Paybox / צ'ק\n📞 050-5918734 | הושעיה אמן בלונים`;}
+function qcalc(){const tot=qIt.reduce((s,i)=>s+(i.price||0),0);const dist=+(document.getElementById('QDIST')?.value||0)||0;const trv=Math.round(dist*2*TRAVEL_RATE);const dp=+(document.getElementById('QDISC')?.value||0)||0;const da=Math.round(tot*dp/100);const grand=tot-da+trv;document.getElementById('QTOT').textContent=grand+' ₪';const tv=document.getElementById('QTRVL');
+  if(tv){
+    const base=tot-da;
+    // "מינימום יציאה 500 ₪" מהמחירון: מתריע ולא משנה מחיר מעצמו
+    const low=dist>0&&base>0&&base<MIN_CALLOUT;
+    tv.innerHTML=(trv>0?`כולל נסיעות: ${trv}₪`:'')
+      +(low?`${trv>0?' · ':''}<span style="color:var(--pink)">⚠️ מתחת למינימום יציאה ${MIN_CALLOUT}₪</span>`:'');
+  }const da_el=document.getElementById('QDAMT');if(da_el){da_el.style.display=dp>0?'inline':'none';da_el.textContent=`-${da}₪`;}const dr=document.getElementById('QDRSN');if(dr)dr.style.display=dp>0?'block':'none';document.getElementById('QPREV').textContent=waT();}
+function waT(){const n=document.getElementById('QCN')?.value||'הלקוח',ev=document.getElementById('QET')?.value||'האירוע',ed=document.getElementById('QED')?.value||'',ds=ed?new Date(ed).toLocaleDateString('he-IL'):'',dist=+(document.getElementById('QDIST')?.value||0)||0,trv=Math.round(dist*2*TRAVEL_RATE),dp=+(document.getElementById('QDISC')?.value||0)||0,tot=qIt.reduce((s,i)=>s+(i.price||0),0),da=Math.round(tot*dp/100),grand=tot-da+trv,dr=document.getElementById('QDRTXT')?.value||`הנחה ${dp}%`,lines=qIt.filter(i=>i.name).map(i=>`• ${i.name} × ${i.qty} — ${i.price}₪`).join('\n')||'• (לא נבחרו פריטים)',trvl=trv>0?`\n• נסיעות — ${trv}₪`:'',disc=dp>0?`\n🎁 ${dr}: -${da}₪`:'';return `שלום ${n} 😊🎈\n\nהצעת מחיר עבור ${ev}${ds?' — '+ds:''}:\n\n${lines}${trvl}${disc}\n\n*סה"כ לתשלום: ${grand}₪*\n\nתשלום ב-Bit / Paybox / צ'ק\n📞 050-5918734 | הושעיה אמן בלונים`;}
 function qcopy(){navigator.clipboard.writeText(waT()).then(()=>{document.getElementById('QCPB').textContent='✅ הועתק!';setTimeout(()=>document.getElementById('QCPB').textContent='📋 העתק לוואטסאפ',2000);});}
 function qwa(){const phone=(document.getElementById('QCP')?.value||'').replace(/\D/g,'').replace(/^0/,'');window.open(phone?`https://wa.me/972${phone}?text=${encodeURIComponent(waT())}`:`https://wa.me/?text=${encodeURIComponent(waT())}`,'_blank');}
-async function qsend(){const n=document.getElementById('QCN')?.value||'',dist=+(document.getElementById('QDIST')?.value||0)||0,trv=Math.round(dist*2*1.5),dp=+(document.getElementById('QDISC')?.value||0)||0,tot=qIt.reduce((s,i)=>s+(i.price||0),0),da=Math.round(tot*dp/100),grand=tot-da+trv;if(!n||grand<=0){sQSt('er','⚠️ נא למלא שם לקוח וסכום');return;}sQSt('ld','⏳ שולח...');
+async function qsend(){const n=document.getElementById('QCN')?.value||'',dist=+(document.getElementById('QDIST')?.value||0)||0,trv=Math.round(dist*2*TRAVEL_RATE),dp=+(document.getElementById('QDISC')?.value||0)||0,tot=qIt.reduce((s,i)=>s+(i.price||0),0),da=Math.round(tot*dp/100),grand=tot-da+trv;if(!n||grand<=0){sQSt('er','⚠️ נא למלא שם לקוח וסכום');return;}sQSt('ld','⏳ שולח...');
   try{const tr=await fetch('https://api.greeninvoice.co.il/api/v1/account/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:MID,secret:MSC})});const {token}=await tr.json();
     const inc=qIt.filter(i=>i.name&&i.price>0).map(i=>({description:i.name,quantity:i.qty,price:pfr(i.name,qLoc),vatType:0}));if(trv>0)inc.push({description:'נסיעות',quantity:1,price:trv,vatType:0});
     const pl={description:document.getElementById('QET')?.value||'שירותי בלונים',type:320,lang:'he',currency:'ILS',vatType:0,discount:dp||0,client:{name:n,phones:document.getElementById('QCP')?.value?[{phone:document.getElementById('QCP').value}]:[],add:true},income:inc,remarks:"תשלום ב-Bit / Paybox / צ'ק\nהושעיה אמן בלונים | 050-5918734"};
@@ -1327,11 +1386,11 @@ function rParsed(p){document.getElementById('QPD').style.display='block';let h='
   h+='<br>'+p.items.map(i=>PL[i.name]
       ?`• ${i.name} × ${i.qty} — <b style="color:var(--gold)">${i.price}₪</b>`
       :`• ⚠️ ${i.name} × ${i.qty} — <span style="color:var(--pink)">לא במחירון</span>`).join('<br>');
-  const tot=p.items.reduce((s,i)=>s+i.price,0)+Math.round((p.distanceKm||0)*2*1.5);
+  const tot=p.items.reduce((s,i)=>s+i.price,0)+Math.round((p.distanceKm||0)*2*TRAVEL_RATE);
   h+=`<br><br><span style="color:var(--gold);font-weight:700">💰 סה"כ: ${tot}₪</span>`;
   if(unknown.length)h+=`<br><span style="color:var(--pink);font-size:11px">⚠️ ${unknown.length} פריטים לא זוהו במחירון — יש לבחור אותם ידנית</span>`;
   if(p.notes)h+=`<br>📝 ${p.notes}`;document.getElementById('QPDTXT').innerHTML=h;}
-function qapply(){if(!pQ)return;if(pQ.clientName)document.getElementById('QCN').value=pQ.clientName;if(pQ.clientPhone)document.getElementById('QCP').value=pQ.clientPhone;if(pQ.eventType)document.getElementById('QET').value=pQ.eventType;if(validDate(pQ.eventDate))document.getElementById('QED').value=pQ.eventDate;if(pQ.distanceKm)document.getElementById('QDIST').value=pQ.distanceKm;qIt=[];document.getElementById('QITEMS').innerHTML='';pQ.items.forEach(it=>{qIt.push(it);const opts=Object.keys(PL).map(k=>`<option value="${k}"${k===it.name?' selected':''}>${k}</option>`).join('');const row=document.createElement('div');row.className='irow';row.id=`QR${it.id}`;row.innerHTML=`<select style="flex:2;background:transparent;border:none;color:var(--text);font-family:'Heebo',sans-serif;font-size:11px;outline:none;direction:rtl" onchange="qun(${it.id},this.value)"><option value="">בחר...</option>${opts}</select><input type="number" min="1" value="${it.qty}" style="width:38px;background:transparent;border:none;color:var(--text);text-align:center;font-family:'Heebo',sans-serif;font-size:11px;outline:none" onchange="quq(${it.id},+this.value)"><span id="QP${it.id}" style="color:var(--gold);font-weight:700;font-size:11px;min-width:42px">${it.price}₪</span><button onclick="qrm(${it.id})" style="background:none;border:none;color:var(--pink);cursor:pointer;font-size:13px">✕</button>`;document.getElementById('QITEMS').appendChild(row);});
+function qapply(){if(!pQ)return;if(pQ.clientName)document.getElementById('QCN').value=pQ.clientName;if(pQ.clientPhone)document.getElementById('QCP').value=pQ.clientPhone;if(pQ.eventType)document.getElementById('QET').value=pQ.eventType;if(validDate(pQ.eventDate))document.getElementById('QED').value=pQ.eventDate;if(pQ.distanceKm)document.getElementById('QDIST').value=pQ.distanceKm;qIt=[];document.getElementById('QITEMS').innerHTML='';pQ.items.forEach(it=>{qIt.push(it);const opts=plOptions(it.name);const row=document.createElement('div');row.className='irow';row.id=`QR${it.id}`;row.innerHTML=`<select style="flex:2;background:transparent;border:none;color:var(--text);font-family:'Heebo',sans-serif;font-size:11px;outline:none;direction:rtl" onchange="qun(${it.id},this.value)"><option value="">בחר...</option>${opts}</select><input type="number" min="1" value="${it.qty}" style="width:38px;background:transparent;border:none;color:var(--text);text-align:center;font-family:'Heebo',sans-serif;font-size:11px;outline:none" onchange="quq(${it.id},+this.value)"><span id="QP${it.id}" style="color:var(--gold);font-weight:700;font-size:11px;min-width:42px">${it.price}₪</span><button onclick="qrm(${it.id})" style="background:none;border:none;color:var(--pink);cursor:pointer;font-size:13px">✕</button>`;document.getElementById('QITEMS').appendChild(row);});
   // חייב לרוץ אחרי שהפריטים נכנסו: setQLoc מתמחר אותם מחדש לפי מצב התושב
   setQLoc(pQ.isLocal);
   sqt(0);qcalc();}
