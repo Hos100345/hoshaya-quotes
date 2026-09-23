@@ -4,7 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="הושעיה">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#080E15">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <title>🎈 הושעיה אמן בלונים</title>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
 <style>
@@ -507,6 +513,31 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
     </div>
   </div>
 </div>
+<!-- שליחה בוואטסאפ -->
+<div class="mov" id="SENDM" onclick="closeSendOut(event)">
+  <div class="msh" style="max-height:90vh;overflow-y:auto">
+    <div class="mhdl"></div>
+    <div class="mttl">📲 שליחה בוואטסאפ</div>
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
+      <img id="SENDIMG" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:10px;background:var(--card);flex-shrink:0" referrerpolicy="no-referrer">
+      <div style="min-width:0">
+        <div id="SENDNAME" style="font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+        <div id="SENDCAT" style="font-size:10px;color:var(--muted);margin-top:2px"></div>
+      </div>
+    </div>
+    <label class="lbl">מספר טלפון</label>
+    <input class="inp" id="SENDPH" type="tel" inputmode="tel" autocomplete="tel" placeholder="050-0000000" style="margin-bottom:6px;margin-top:3px;direction:ltr;text-align:left">
+    <div id="SENDRECENT" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px"></div>
+    <label class="lbl">הודעה (אופציונלי)</label>
+    <input class="inp" id="SENDMSG" placeholder="שלום, מצרף תמונה של העיצוב" style="margin-bottom:10px;margin-top:3px">
+    <div id="SENDST" class="st" style="display:none"></div>
+    <button class="mbt p" id="SENDWABTN" onclick="sendWaNumber()">📲 פתח וואטסאפ עם המספר</button>
+    <button class="mbt s" id="SENDSHAREBTN" onclick="sendWaShare()">📤 שתף את התמונה</button>
+    <button class="mbt s" onclick="sendDownload()">⬇️ הורד למכשיר</button>
+    <button class="mbt s" onclick="closeSend()">ביטול</button>
+  </div>
+</div>
+
 <!-- Drive status modal -->
 <div class="mov" id="DM" onclick="closeDMout(event)">
   <div class="msh">
@@ -595,12 +626,124 @@ function rg(){
           ? `<img src="${it.d}" alt="${escHtml(it.name)}" loading="lazy" referrerpolicy="no-referrer"><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:34px;text-shadow:0 2px 8px rgba(0,0,0,.6);pointer-events:none">▶</div>`
           : `<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:var(--surface);color:var(--muted)"><div style="font-size:30px">🎬</div><div style="font-size:9px;padding:0 6px;text-align:center;overflow:hidden">${escHtml(it.name)}</div></div>`)
       : `<img src="${it.d}" alt="${escHtml(it.cat)}" loading="lazy" referrerpolicy="no-referrer">`;
-    return `<div class="gi" onclick="shi('${it.id}')">${media}<div class="gl">${escHtml(it.cat)}<div class="gd">${it.dt||''}</div></div><button class="sfb" onclick="event.stopPropagation();shi('${it.id}')">${it.isVideo?'↗':'📤'}</button></div>`;
+    return `<div class="gi" onclick="openSend('${it.id}')">${media}<div class="gl">${escHtml(it.cat)}<div class="gd">${it.dt||''}</div></div><button class="sfb" onclick="event.stopPropagation();shi('${it.id}')">${it.isVideo?'↗':'📤'}</button></div>`;
   }).join('');
   const vids=fl.filter(i=>i.isVideo).length;
   document.getElementById('CATCOUNT').textContent=
     `${fl.length} פריטים${vids?` (${vids} וידאו)`:''} · ${driveFolders.length} קטגוריות`;
 }
+// ── שליחה בוואטסאפ ──
+// אי אפשר לצרף קובץ לוואטסאפ דרך קישור: wa.me נושא טקסט בלבד, ו-navigator.share
+// מצרף קובץ אבל לא מקבל נמען. לכן שני מסלולים — מספר מדויק + תמונה בלוח,
+// או גיליון שיתוף שמצרף את התמונה והנמען נבחר ידנית.
+let sendItem=null,_sendBlob=null;
+function sSendSt(t,m){const el=document.getElementById('SENDST');el.className=`st ${t}`;el.textContent=m;el.style.display='block';}
+
+function normPhone(v){
+  let d=String(v||'').replace(/\D/g,'');
+  if(!d)return '';
+  if(d.startsWith('00'))d=d.slice(2);
+  if(d.startsWith('972'))return d;
+  if(d.startsWith('0'))return '972'+d.slice(1);
+  if(d.length===9&&d[0]==='5')return '972'+d;
+  return d;
+}
+function recentPhones(){try{return JSON.parse(localStorage.getItem('wa_recent')||'[]');}catch(e){return[];}}
+function rememberPhone(p){
+  try{
+    const list=[p,...recentPhones().filter(x=>x!==p)].slice(0,6);
+    localStorage.setItem('wa_recent',JSON.stringify(list));
+  }catch(e){}
+}
+function renderRecent(){
+  const wrap=document.getElementById('SENDRECENT');
+  const list=recentPhones();
+  wrap.innerHTML=list.map(p=>`<button class="chip" data-p="${escHtml(p)}" style="font-size:10px;padding:3px 9px">${escHtml('0'+p.slice(3))}</button>`).join('');
+  wrap.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{document.getElementById('SENDPH').value='0'+b.dataset.p.slice(3);});
+}
+function openSend(id){
+  const it=cat.find(i=>i.id===id);
+  if(!it)return;
+  sendItem=it;_sendBlob=null;
+  document.getElementById('SENDIMG').src=it.d||'';
+  document.getElementById('SENDNAME').textContent=it.name||'';
+  document.getElementById('SENDCAT').textContent=it.isVideo?`${it.cat} · וידאו`:it.cat;
+  document.getElementById('SENDMSG').value='';
+  document.getElementById('SENDST').style.display='none';
+  document.getElementById('SENDSHAREBTN').textContent=it.isVideo?'↗ פתח בדרייב':'📤 שתף את התמונה';
+  renderRecent();
+  document.getElementById('SENDM').classList.add('open');
+}
+function closeSend(){document.getElementById('SENDM').classList.remove('open');}
+function closeSendOut(e){if(e.target===document.getElementById('SENDM'))closeSend();}
+
+async function sendBlob(){
+  if(_sendBlob)return _sendBlob;
+  const r=await fetch(`https://www.googleapis.com/drive/v3/files/${sendItem.driveId}?alt=media`,{headers:{Authorization:`Bearer ${gToken}`}});
+  if(!r.ok)throw new Error('Drive '+r.status);
+  _sendBlob=await r.blob();
+  return _sendBlob;
+}
+// הלוח מקבל PNG בלבד, אז ממירים דרך canvas. HEIC לא נפתח בכרום ולכן ייכשל כאן — בכוונה.
+async function copyImageToClipboard(blob){
+  if(!navigator.clipboard||!window.ClipboardItem)throw new Error('אין תמיכה בלוח');
+  const bmp=await createImageBitmap(blob);
+  const cv=document.createElement('canvas');
+  cv.width=bmp.width;cv.height=bmp.height;
+  cv.getContext('2d').drawImage(bmp,0,0);
+  const png=await new Promise(res=>cv.toBlob(res,'image/png'));
+  if(!png)throw new Error('המרה נכשלה');
+  await navigator.clipboard.write([new ClipboardItem({'image/png':png})]);
+}
+async function sendWaNumber(){
+  if(!sendItem)return;
+  const phone=normPhone(document.getElementById('SENDPH').value);
+  if(phone.length<11){sSendSt('er','⚠️ מספר לא תקין');return;}
+  const msg=document.getElementById('SENDMSG').value.trim();
+  const btn=document.getElementById('SENDWABTN');
+  btn.disabled=true;
+  let copied=false;
+  if(!sendItem.isVideo){
+    sSendSt('ld','⏳ מעתיק את התמונה...');
+    try{await copyImageToClipboard(await sendBlob());copied=true;}catch(e){}
+  }
+  rememberPhone(phone);
+  btn.disabled=false;
+  const url=`https://wa.me/${phone}`+(msg?`?text=${encodeURIComponent(msg)}`:'');
+  window.open(url,'_blank','noopener');
+  if(copied)sSendSt('ok','✅ השיחה נפתחה והתמונה בלוח — לחיצה ארוכה בשדה ההודעה ← הדבק');
+  else if(sendItem.isVideo)sSendSt('ok','✅ השיחה נפתחה. וידאו יש לצרף מהדרייב');
+  else sSendSt('er','⚠️ השיחה נפתחה, אבל העתקת התמונה נכשלה — השתמש ב"שתף את התמונה"');
+}
+async function sendWaShare(){
+  if(!sendItem)return;
+  if(sendItem.isVideo){window.open(sendItem.link,'_blank','noopener');return;}
+  const btn=document.getElementById('SENDSHAREBTN');
+  btn.disabled=true;sSendSt('ld','⏳ מכין את התמונה...');
+  try{
+    const bl=await sendBlob();
+    const f=new File([bl],sendItem.name||'balloon.jpg',{type:bl.type||'image/jpeg'});
+    const msg=document.getElementById('SENDMSG').value.trim();
+    if(navigator.share&&navigator.canShare&&navigator.canShare({files:[f]})){
+      await navigator.share({files:[f],text:msg||`עיצוב ${sendItem.cat} | הושעיה אמן בלונים | 050-5918734`});
+      sSendSt('ok','✅ נשלח לגיליון השיתוף');
+    }else{
+      sSendSt('er','⚠️ המכשיר לא תומך בשיתוף קבצים — השתמש בהורדה');
+    }
+  }catch(e){if(e.name!=='AbortError')sSendSt('er','❌ '+e.message);}
+  finally{btn.disabled=false;}
+}
+async function sendDownload(){
+  if(!sendItem)return;
+  try{
+    const bl=await sendBlob();
+    const u=URL.createObjectURL(bl);
+    const a=document.createElement('a');a.href=u;a.download=sendItem.name||'balloon.jpg';a.click();
+    setTimeout(()=>URL.revokeObjectURL(u),5000);
+    sSendSt('ok','📥 הורד');
+  }catch(e){sSendSt('er','❌ '+e.message);}
+}
+
 // שיתוף מוריד את הקובץ המלא מהדרייב, לא את התמונה הממוזערת
 async function shi(id){
   const it=cat.find(i=>i.id===id);
@@ -1275,6 +1418,13 @@ function closeDMout(e){if(e.target===document.getElementById('DM'))closeDM();}
 // ── UTILS ──
 function toast(msg,isE=0){const t=document.getElementById('TOAST');t.textContent=msg;t.className='toast'+(isE?' e':'')+ ' v';setTimeout(()=>t.className='toast'+(isE?' e':''),3000);}
 function dl(ms){return new Promise(r=>setTimeout(r,ms));}
+
+// ── PWA ──
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
 
 // ── INIT ──
 initCatalog();
