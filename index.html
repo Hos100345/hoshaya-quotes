@@ -512,7 +512,7 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
   <div class="msh">
     <div class="mhdl"></div>
     <div class="mttl" id="DMTTL">🔗 Google Drive</div>
-    <div class="mtxt" id="DMTXT">הקטלוג נקרא מ-<strong>📸 קטלוג בלונים</strong> בדרייב שלך. כל תת-תיקייה היא קטגוריה, וכל תמונה שתשים שם תופיע כאן.</div>
+    <div class="mtxt" id="DMTXT">הקטלוג נקרא מ-<strong>📸 תמונות עבודות</strong> בדרייב שלך, בקריאה בלבד. כל תת-תיקייה היא קטגוריה, וכל תמונה או וידאו שתשים שם יופיעו כאן.</div>
     <button class="mbt p" id="DMBTN" onclick="driveLogin()">התחבר עם Google</button>
     <button class="mbt s" onclick="closeDM()">סגור</button>
   </div>
@@ -538,7 +538,7 @@ const MSC='58854R0q&Q.^*sVu6zW+4h7NzUFB[1sP';
 
 // ── STATE ──
 let cat=[],cF='הכל',cT=0,cFile=null,cData=null,sCat=null,uM='s',bF=[],bC=[];
-let driveFolders=[];   // [{id,name}] — תת-התיקיות של 📸 קטלוג בלונים = הקטגוריות
+let driveFolders=[];   // [{id,name}] — תת-התיקיות של 📸 תמונות עבודות = הקטגוריות
 function catNames(){return driveFolders.map(f=>f.name);}
 let qIt=[],qLoc=false,qHist=[],pQ=null,eC=0;
 
