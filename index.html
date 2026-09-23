@@ -791,7 +791,8 @@ async function svs(){
   finally{btn.disabled=true;btn.textContent='💾 שמור לקטלוג';pb.classList.remove('v');pf.style.width='0%';}
 }
 async function hb(files){if(!files||!files.length)return;bF=Array.from(files);bC=new Array(bF.length).fill(null);const g=document.getElementById('BGD');g.style.display='grid';g.innerHTML='';bF.forEach((f,i)=>{const d=document.createElement('div');d.className='bit';d.id=`BI${i}`;const img=document.createElement('img');img.loading='lazy';const bc=document.createElement('div');bc.className='bca';bc.id=`BC${i}`;bc.textContent='?';const ov=document.createElement('div');ov.className='bov';ov.id=`BO${i}`;ov.textContent='⏳';d.appendChild(img);d.appendChild(bc);d.appendChild(ov);g.appendChild(d);const r=new FileReader();r.onload=e=>img.src=e.target.result;r.readAsDataURL(f);});document.getElementById('BCN').textContent=`${bF.length} תמונות`;document.getElementById('BAC').classList.add('v');}
-async function rbAI(){toast('🤖 מנתח...');for(let i=0;i<bF.length;i++){const ov=document.getElementById(`BO${i}`);if(ov)ov.textContent='🔍';await new Promise(res=>{const r=new FileReader();r.onload=async e=>{const c=await aiQ(e.target.result);bC[i]=c;const bc=document.getElementById(`BC${i}`);if(bc)bc.textContent=c||'?';if(ov)ov.textContent=c?'✅':'⚠️';res();};r.readAsDataURL(bF[i]);});}toast('✅ זיהוי הושלם!');}
+async function rbAI(){lastAIErr='';toast('🤖 מנתח...');for(let i=0;i<bF.length;i++){const ov=document.getElementById(`BO${i}`);if(ov)ov.textContent='🔍';await new Promise(res=>{const r=new FileReader();r.onload=async e=>{const c=await aiQ(e.target.result);bC[i]=c;const bc=document.getElementById(`BC${i}`);if(bc)bc.textContent=c||'?';if(ov)ov.textContent=c?'✅':'⚠️';res();};r.readAsDataURL(bF[i]);});}const miss=bC.filter(c=>!c).length;
+  toast(miss?`⚠️ ${miss} לא זוהו — ${lastAIErr||'בחר קטגוריה ידנית'}`:'✅ זיהוי הושלם!',miss?1:0);}
 async function svb(){
   if(!isDriveReady()){toast('❌ יש להתחבר ל-Drive',1);return;}
   const mc=document.getElementById('BCS').value;
@@ -868,14 +869,18 @@ function imgForAI(dataUrl,max=1024){
   });
 }
 async function aiImg(b64){const c=await aiQ(b64,true);if(c)document.getElementById('AIR').textContent=c;}
+// זיהוי באצווה בולע שגיאות כדי לא לעצור את הלולאה, אז הסיבה נשמרת כאן
+// ומוצגת בסוף — אחרת "לא זוהה" נראה כמו כישלון זיהוי ולא כמו חוסר התחברות.
+let lastAIErr='';
 async function aiQ(b64,v=false){
   try{
     const names=catNames();
-    if(!names.length)return null;
+    if(!names.length){lastAIErr='אין תיקיות בדרייב לבחור מהן';return null;}
     const d=await aiCall('vision',{image:await imgForAI(b64),categories:names});
     if(v)document.getElementById('AID').textContent=d.description||'';
     return d.category||null;
   }catch(e){
+    lastAIErr=e.message;
     if(v){document.getElementById('AIR').textContent='בחר ידנית';document.getElementById('AID').textContent=e.message;}
     return null;
   }
