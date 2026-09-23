@@ -186,6 +186,7 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
 <!-- CATALOG -->
 <div id="T0" class="sec">
   <div class="fscr" id="FSC"></div>
+  <div id="CATCOUNT" style="font-size:10px;color:var(--muted);margin:-4px 0 8px;padding-right:2px"></div>
   <div class="gg" id="GG"></div>
   <div class="empty" id="EMP"></div>
 </div>
@@ -568,7 +569,7 @@ function buildCatChips(){
 function buildUploadTargets(){
   const cg=document.getElementById('CG');
   cg.innerHTML=driveFolders.map(f=>`<button class="cb" data-id="${escHtml(f.id)}" data-cat="${escHtml(f.name)}"><span class="ci">📁</span>${escHtml(f.name)}</button>`).join('')
-    +'<button class="cb" data-id="" data-cat="__new__"><span class="ci">＋</span>תיקייה חדשה</button>';
+    ||'<div style="grid-column:1/-1;font-size:11px;color:var(--muted);text-align:center;padding:6px">אין תיקיות בדרייב</div>';
   cg.querySelectorAll('.cb').forEach(b=>b.onclick=()=>sc(b));
   document.getElementById('BCS').innerHTML='<option value="">AI יזהה כל תמונה בנפרד</option>'
     +driveFolders.map(f=>`<option value="${escHtml(f.name)}">📁 ${escHtml(f.name)}</option>`).join('');
@@ -587,21 +588,24 @@ function rg(){
     e.style.display='block';return;
   }
   e.style.display='none';
-  g.innerHTML=fl.map(it=>`<div class="gi" onclick="shi('${it.id}')"><img src="${it.d}" alt="${escHtml(it.cat)}" loading="lazy" referrerpolicy="no-referrer"><div class="gl">${escHtml(it.cat)}<div class="gd">${it.dt||''}</div></div><button class="sfb" onclick="event.stopPropagation();shi('${it.id}')">📤</button><button class="dfb" onclick="event.stopPropagation();del('${it.id}')">✕</button></div>`).join('');
-}
-async function del(id){
-  const it=cat.find(i=>i.id===id);
-  if(!it)return;
-  if(!confirm('להעביר את התמונה לאשפה בדרייב?'))return;
-  try{
-    await gFetch(`https://www.googleapis.com/drive/v3/files/${it.driveId}`,{method:'PATCH',body:JSON.stringify({trashed:true})});
-    cat=cat.filter(i=>i.id!==id);rg();toast('🗑️ הועבר לאשפה בדרייב');
-  }catch(e){toast('❌ '+e.message,1);}
+  g.innerHTML=fl.map(it=>{
+    // וידאו: אף פעם לא <img> על הקובץ עצמו. או תמונה ממוזערת שדרייב הכין, או אריח עם 🎬.
+    const media=it.isVideo
+      ? (it.d
+          ? `<img src="${it.d}" alt="${escHtml(it.name)}" loading="lazy" referrerpolicy="no-referrer"><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:34px;text-shadow:0 2px 8px rgba(0,0,0,.6);pointer-events:none">▶</div>`
+          : `<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:var(--surface);color:var(--muted)"><div style="font-size:30px">🎬</div><div style="font-size:9px;padding:0 6px;text-align:center;overflow:hidden">${escHtml(it.name)}</div></div>`)
+      : `<img src="${it.d}" alt="${escHtml(it.cat)}" loading="lazy" referrerpolicy="no-referrer">`;
+    return `<div class="gi" onclick="shi('${it.id}')">${media}<div class="gl">${escHtml(it.cat)}<div class="gd">${it.dt||''}</div></div><button class="sfb" onclick="event.stopPropagation();shi('${it.id}')">${it.isVideo?'↗':'📤'}</button></div>`;
+  }).join('');
+  const vids=fl.filter(i=>i.isVideo).length;
+  document.getElementById('CATCOUNT').textContent=
+    `${fl.length} פריטים${vids?` (${vids} וידאו)`:''} · ${driveFolders.length} קטגוריות`;
 }
 // שיתוף מוריד את הקובץ המלא מהדרייב, לא את התמונה הממוזערת
 async function shi(id){
   const it=cat.find(i=>i.id===id);
   if(!it)return;
+  if(it.isVideo){window.open(it.link,'_blank','noopener');return;}
   try{
     const r=await fetch(`https://www.googleapis.com/drive/v3/files/${it.driveId}?alt=media`,{headers:{Authorization:`Bearer ${gToken}`}});
     if(!r.ok)throw new Error('Drive '+r.status);
@@ -623,13 +627,8 @@ async function hs(files){if(!files||!files.length)return;cFile=files[0];const r=
 function sc(btn){
   document.querySelectorAll('#CG .cb').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
-  const name=btn.dataset.cat;
-  if(name==='__new__'){
-    const n=(prompt('שם התיקייה החדשה בדרייב:')||'').trim();
-    if(!n){btn.classList.remove('on');sCat=null;document.getElementById('SVB').disabled=true;return;}
-    sCat={id:null,name:n};
-  }else sCat={id:btn.dataset.id,name:name};
-  document.getElementById('SVB').disabled=false;
+  sCat={id:btn.dataset.id,name:btn.dataset.cat};
+  document.getElementById('SVB').disabled=!sCat.id;
 }
 async function svs(){
   if(!cFile||!sCat)return;
@@ -637,7 +636,8 @@ async function svs(){
   const btn=document.getElementById('SVB');btn.disabled=true;btn.textContent='⏳ מעלה...';
   const pb=document.getElementById('PB'),pf=document.getElementById('PF');pb.classList.add('v');pf.style.width='30%';
   try{
-    const folderId=sCat.id||await ensureFolderByName(sCat.name);
+    const folderId=sCat.id;
+    if(!folderId)throw new Error('לא נבחרה תיקייה קיימת');
     pf.style.width='65%';
     await uploadToDrive(cFile,folderId);
     pf.style.width='100%';
@@ -654,16 +654,19 @@ async function svb(){
   if(!isDriveReady()){toast('❌ יש להתחבר ל-Drive',1);return;}
   const mc=document.getElementById('BCS').value;
   const btn=document.querySelector('.bsv');if(btn){btn.disabled=true;btn.textContent='⏳ מעלה...';}
-  let saved=0,failed=0;
+  let saved=0,failed=0,noFolder=0;
   for(let i=0;i<bF.length;i++){
-    const name=mc||bC[i]||'כללי';
+    const name=mc||bC[i];
     const ov=document.getElementById(`BO${i}`);
+    const folder=driveFolders.find(f=>f.name===name);
+    // לא יוצרים תיקיות. בלי תיקייה קיימת הקובץ לא עולה.
+    if(!folder){noFolder++;if(ov)ov.textContent='📁';continue;}
     try{
-      const folderId=(driveFolders.find(f=>f.name===name)||{}).id||await ensureFolderByName(name);
-      await uploadToDrive(bF[i],folderId);
+      await uploadToDrive(bF[i],folder.id);
       saved++;if(ov)ov.textContent='✅';
     }catch(e){failed++;if(ov)ov.textContent='❌';}
   }
+  if(noFolder)toast(`📁 ${noFolder} ללא תיקייה מתאימה — בחר תיקייה מהרשימה`,1);
   toast(failed?`✅ ${saved} הועלו, ❌ ${failed} נכשלו`:`✅ ${saved} תמונות הועלו לדרייב`,failed?1:0);
   bF=[];bC=[];document.getElementById('BGD').style.display='none';document.getElementById('BAC').classList.remove('v');document.getElementById('bi').value='';
   if(btn){btn.disabled=false;btn.textContent='💾 שמור הכל';}
@@ -1149,7 +1152,9 @@ function copyMissing(){
 // ── DRIVE ──
 const GCLIENT_ID='814302848975-2pis91kp20n3eg92bv7gdmlvfsh9fl6j.apps.googleusercontent.com';
 const GSCOPES='https://www.googleapis.com/auth/drive';
-const CATALOG_FOLDER_NAME='📸 קטלוג בלונים';
+const CATALOG_FOLDER_NAME='📸 תמונות עבודות';
+// מזהה קבוע. קריאה בלבד — לא יוצרים, לא מזיזים, לא משנים שמות.
+const CATALOG_ROOT_ID='176FEefUBgllY3xB5AOGgGq1yW0o_pJkr';
 let gToken=null,gTokenExpiry=0,catalogFolderId=null;
 
 function isDriveReady(){return gToken&&Date.now()<gTokenExpiry;}
@@ -1186,25 +1191,7 @@ function updateDriveBtn(){
   else{btn.textContent='Drive';btn.style.color='var(--bl)';}
 }
 
-async function findCatalogRoot(){
-  if(catalogFolderId)return catalogFolderId;
-  const q=`name='${CATALOG_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
-  const res=await gFetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)&pageSize=10`);
-  if(res.files&&res.files.length){catalogFolderId=res.files[0].id;return catalogFolderId;}
-  const cr=await gFetch('https://www.googleapis.com/drive/v3/files',{method:'POST',body:JSON.stringify({name:CATALOG_FOLDER_NAME,mimeType:'application/vnd.google-apps.folder'})});
-  if(!cr.id)throw new Error(cr.error?.message||'לא ניתן ליצור את תיקיית הקטלוג');
-  catalogFolderId=cr.id;return catalogFolderId;
-}
-
-async function ensureFolderByName(name){
-  const hit=driveFolders.find(f=>f.name===name);
-  if(hit)return hit.id;
-  const root=await findCatalogRoot();
-  const cr=await gFetch('https://www.googleapis.com/drive/v3/files',{method:'POST',body:JSON.stringify({name,mimeType:'application/vnd.google-apps.folder',parents:[root]})});
-  if(!cr.id)throw new Error(cr.error?.message||'לא ניתן ליצור תיקייה');
-  driveFolders.push({id:cr.id,name});
-  return cr.id;
-}
+async function findCatalogRoot(){return CATALOG_ROOT_ID;}
 
 async function uploadToDrive(file,folderId){
   const meta={name:file.name,parents:[folderId]};
@@ -1218,10 +1205,11 @@ async function uploadToDrive(file,folderId){
 }
 
 async function listDriveImages(folderId){
-  const q=`'${folderId}' in parents and mimeType contains 'image/' and trashed=false`;
+  // תמונות ווידאו בלבד — PDF ומסמכי Google נשארים בחוץ, אחרת נוצרים כרטיסים שבורים
+  const q=`'${folderId}' in parents and (mimeType contains 'image/' or mimeType contains 'video/') and trashed=false`;
   const out=[];let token='';
   for(let page=0;page<10;page++){
-    const url=`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=nextPageToken,files(id,name,thumbnailLink,createdTime)&orderBy=createdTime desc&pageSize=200`+(token?`&pageToken=${encodeURIComponent(token)}`:'');
+    const url=`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=nextPageToken,files(id,name,mimeType,thumbnailLink,webViewLink,createdTime)&orderBy=createdTime desc&pageSize=200`+(token?`&pageToken=${encodeURIComponent(token)}`:'');
     const res=await gFetch(url);
     if(res.error)throw new Error(res.error.message);
     out.push(...(res.files||[]));
@@ -1232,9 +1220,13 @@ async function listDriveImages(folderId){
 }
 
 function driveItem(f,catName){
+  const mt=f.mimeType||'';
   return{
     id:f.id,driveId:f.id,cat:catName,name:f.name,fromDrive:true,
-    // thumbnailLink מגיע ב-=s220; מבקשים רזולוציה גבוהה יותר לרשת
+    mime:mt,isVideo:mt.startsWith('video/'),
+    link:f.webViewLink||`https://drive.google.com/file/d/${f.id}/view`,
+    // thumbnailLink מגיע ב-=s220; מבקשים רזולוציה גבוהה יותר לרשת.
+    // דרייב מייצר תמונה ממוזערת גם לווידאו ול-HEIC.
     d:(f.thumbnailLink||'').replace(/=s\d+(-c)?$/,'=s800'),
     dt:f.createdTime?new Date(f.createdTime).toLocaleDateString('he-IL'):''
   };
