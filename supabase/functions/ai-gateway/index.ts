@@ -16,7 +16,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import Anthropic from 'npm:@anthropic-ai/sdk@0.68.0';
 
-const VERSION = '2026-09-23c';
+const VERSION = '2026-09-23d';
 const MODEL = 'claude-opus-5';
 
 const ADMIN_EMAILS = (Deno.env.get('ADMIN_EMAILS') || 'hoshaya@gmail.com')
@@ -154,27 +154,77 @@ const AUDIO_MIME_FIX: Record<string, string> = {
   'audio/vnd.wave': 'audio/wav', 'audio/opus': 'audio/ogg',
 };
 const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest'];
+const GEMINI_API = 'https://generativelanguage.googleapis.com/v1beta';
+
+// גוגל מוציאה מודלים משימוש מדי כמה חודשים, וזה בדיוק מה שהשבית את התמלול
+// בפעם הקודמת (gemini-1.5-flash נעלם). לכן הרשימה הקשיחה היא רק העדפה:
+// אם כולם נעלמו, שואלים את גוגל אילו מודלים המפתח באמת מקבל.
+async function geminiListModels(): Promise<string[]> {
+  const r = await fetch(`${GEMINI_API}/models`, { headers: { 'x-goog-api-key': GEMINI_KEY } });
+  const d = await r.json().catch(() => null);
+  if (!d || d.error) throw new Error(d?.error?.message || `HTTP ${r.status}`);
+  return (d.models || [])
+    .filter((m: any) => (m.supportedGenerationMethods || []).includes('generateContent'))
+    .map((m: any) => String(m.name || '').replace(/^models\//, ''))
+    .filter(Boolean);
+}
+function rankGemini(names: string[]) {
+  // flash קודם: זול ומהיר מספיק לתמלול. pro רק כגיבוי אחרון.
+  const flash = names.filter((n) => /flash/i.test(n) && !/thinking|image|tts|embedding|live/i.test(n));
+  const rest = names.filter((n) => !flash.includes(n) && !/embedding|image|tts|live/i.test(n));
+  return [...flash.sort().reverse(), ...rest];
+}
+
+async function geminiOnce(model: string, prompt: string, mimeType: string, data: string) {
+  const r = await fetch(`${GEMINI_API}/models/${model}:generateContent`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_KEY },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType, data } }] }],
+      generationConfig: { temperature: 0.2, maxOutputTokens: 8192 },
+    }),
+  });
+  const d = await r.json().catch(() => null);
+  if (d && !d.error) return { text: String(d.candidates?.[0]?.content?.parts?.[0]?.text || '') };
+  return { err: d?.error?.message || `HTTP ${r.status}` };
+}
+const GONE = /not found|not supported|unsupported|NOT_FOUND|is not found for API version/i;
 
 async function geminiTranscribe(prompt: string, mimeType: string, data: string) {
   let last = '';
+  const tried = new Set<string>();
   for (const model of GEMINI_MODELS) {
-    const r = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_KEY },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType, data } }] }],
-          generationConfig: { temperature: 0.2, maxOutputTokens: 8192 },
-        }),
-      },
-    );
-    const d = await r.json().catch(() => null);
-    if (d && !d.error) return String(d.candidates?.[0]?.content?.parts?.[0]?.text || '');
-    last = d?.error?.message || `HTTP ${r.status}`;
-    if (!/not found|not supported|unsupported|NOT_FOUND/i.test(last)) break;
+    tried.add(model);
+    const r = await geminiOnce(model, prompt, mimeType, data);
+    if (!r.err) return { text: r.text, model };
+    last = r.err;
+    // שגיאה שאינה "המודל לא קיים" — מפתח שגוי, מכסה, קובץ פסול — עוצרת מיד.
+    if (!GONE.test(last)) throw new Error('Gemini: ' + last);
+  }
+  // כל הרשימה הקשיחה נעלמה — שואלים את גוגל מה כן קיים היום.
+  let live: string[] = [];
+  try { live = rankGemini(await geminiListModels()); } catch (e) { throw new Error('Gemini: ' + last + ' · ' + String((e as Error).message)); }
+  for (const model of live.slice(0, 4)) {
+    if (tried.has(model)) continue;
+    const r = await geminiOnce(model, prompt, mimeType, data);
+    if (!r.err) return { text: r.text, model };
+    last = r.err;
+    if (!GONE.test(last)) throw new Error('Gemini: ' + last);
   }
   throw new Error('Gemini: ' + last);
+}
+
+// אימות שהמפתח של Gemini תקף ואילו מודלים הוא מקבל. ListModels בלבד —
+// לא מייצר תוכן ולא עולה כסף, ולכן מותר גם בלי טוקן, כמו שאר ה-health.
+async function probeGemini() {
+  if (!GEMINI_KEY) return { ok: false, error: 'אין מפתח' };
+  try {
+    const all = await geminiListModels();
+    const usable = rankGemini(all);
+    return { ok: true, total: all.length, preferred: GEMINI_MODELS.filter((m) => all.includes(m)), top: usable.slice(0, 5) };
+  } catch (e) {
+    return { ok: false, error: String((e as Error)?.message || e) };
+  }
 }
 
 Deno.serve(async (req) => {
@@ -190,6 +240,7 @@ Deno.serve(async (req) => {
         hasGeminiKey: Boolean(GEMINI_KEY),
         adminCount: ADMIN_EMAILS.length,
         actions: ['health', 'chat', 'vision', 'audio', 'inventory'],
+        ...(body.probe === 'gemini' ? { gemini: await probeGemini() } : {}),
       });
     }
 
@@ -255,10 +306,10 @@ Deno.serve(async (req) => {
       if (!mimeType.startsWith('audio/')) return json({ ok: false, error: 'לא קובץ אודיו: ' + (raw || 'לא ידוע') }, 400);
 
       // שלב 1 — Gemini מתמלל. שלב 2 — Claude מחלץ מהתמלול, אותה צורה כמו בהדבקת שיחה.
-      const text = await geminiTranscribe('תמלל את ההקלטה הזו במלואה בעברית. החזר תמלול בלבד.', mimeType, m[2]);
+      const { text, model: usedModel } = await geminiTranscribe('תמלל את ההקלטה הזו במלואה בעברית. החזר תמלול בלבד.', mimeType, m[2]);
       if (!text.trim()) return json({ ok: false, error: 'התמלול חזר ריק' }, 502);
       const quote = await parseQuote(`מחירון:\n${String(body.priceList || '')}\n\nתמלול שיחה:\n${text}`);
-      return json({ ok: true, quote: { ...quote, transcript: quote.transcript || text.slice(0, 1200) }, transcript: text });
+      return json({ ok: true, quote: { ...quote, transcript: quote.transcript || text.slice(0, 1200) }, transcript: text, geminiModel: usedModel });
     }
 
     return json({ ok: false, error: 'פעולה לא מוכרת' }, 400);

@@ -24,6 +24,10 @@ curl -X POST https://sccivxenkyzxolpraexf.supabase.co/functions/v1/ai-gateway \
 ```
 מחזיר גרסה, מודל, ואילו מפתחות קיימים (בלי הערכים).
 
+עם `{"action":"health","probe":"gemini"}` הוא גם שואל את גוגל אילו מודלים
+המפתח באמת מקבל — `ListModels` בלבד, בלי יצירת תוכן ובלי עלות. זו הדרך לענות
+על "איזה מודל לשים ב-`GEMINI_MODELS`" בלי לנחש, ולאמת שהמפתח תקף.
+
 ### כללים שנלמדו
 - **`verify_jwt=false` כאן הוא מכוון**, כדי ש-`health` יהיה ניתן לאבחון ב-curl.
   כל פעולה אחרת מאמתת בעצמה: טוקן Supabase + אימייל מול `ADMIN_EMAILS`.
@@ -38,6 +42,11 @@ curl -X POST https://sccivxenkyzxolpraexf.supabase.co/functions/v1/ai-gateway \
   `thinking`. `textOf()` סורק אחרי הבלוק מסוג `text`.
 - **תמלול דורש Gemini.** ה-Messages API של Claude לא מקבל קלט אודיו. אם אין
   מפתח Gemini ב-Secrets, `audio` מחזירה 501 עם הסבר — לא כשל עמום.
+- **רשימת מודלי Gemini היא העדפה, לא הסתמכות.** גוגל מוציאה מודלים משימוש מדי
+  כמה חודשים — `gemini-1.5-flash` נעלם וזה מה שהשבית את התמלול בפעם הקודמת.
+  אם כל הרשימה הקשיחה נעלמה, הקוד שואל את גוגל מה קיים היום ובוחר flash.
+  שגיאה שאינה "המודל לא קיים" (מפתח שגוי, מכסה, קובץ פסול) עוצרת מיד ולא
+  מבזבזת ניסיונות.
 - **Edge Functions לא נפרסות מגיט.** מיזוג PR שנוגע ב-`supabase/functions/`
   לא מעלה כלום לאוויר; צריך `deploy_edge_function` מפורש.
 - **ה-Worker ב-Cloudflare פרש.** הוא דרש deploy ידני, ושם נשאר קוד שקרא למודל
