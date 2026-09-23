@@ -563,7 +563,6 @@ const HD=["א׳","ב׳","ג׳","ד׳","ה׳","ו׳","ז׳","ח׳","ט׳","י׳",
 const HY=[];for(let y=5715;y<=5810;y++)HY.push({v:y,l:`${y} (${y-3760})`});
 const ET=[{v:'birthday',l:'🎂 יום הולדת'},{v:'anniversary',l:'💍 יום נישואים'},{v:'barmitzvah',l:'✡️ בר/בת מצווה'},{v:'other',l:'🎊 אחר'}];
 const SU='https://script.google.com/macros/s/AKfycbyk_ZSw_7nGxhO-U_kL0C5avuxSebLx4VBo9Wj1pFxD2lQQJ24YayWjWT1lDovc2rKV/exec';
-const WORKER_URL='https://hoshaya-worker.hoshaya.workers.dev';
 const MID='24d79387-483a-4678-99a5-b888c3761c49';
 const MSC='58854R0q&Q.^*sVu6zW+4h7NzUFB[1sP';
 
@@ -818,32 +817,64 @@ async function svb(){
 const DZ=document.getElementById('DZ');DZ.addEventListener('dragover',e=>{e.preventDefault();DZ.classList.add('ov');});DZ.addEventListener('dragleave',()=>DZ.classList.remove('ov'));DZ.addEventListener('drop',e=>{e.preventDefault();DZ.classList.remove('ov');const f=e.dataTransfer.files;if(f.length===1)hs(f);else hb(f);});
 
 // ── AI ──
-// ── AI (דרך ה-Worker — המפתח נשאר בצד שרת) ──
-async function workerAI(path,body){
-  const res=await fetch(`${WORKER_URL}${path}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+// ── AI (דרך Supabase Edge Function ai-gateway — המפתחות נשארים בצד שרת) ──
+// למה לא Cloudflare: ה-Worker דורש deploy ידני, ושם נשאר קוד שקרא למודל
+// שהוצא משימוש. Supabase נפרס מכאן, והמפתחות כבר יושבים ב-Secrets שלו.
+// השער מאמת בצד שרת: טוקן Supabase + אימייל מורשה. אותה התחברות כמו במלאי.
+async function aiToken(){
+  const c=sbClient();
+  if(!c)throw new Error('ספריית Supabase לא נטענה — בדוק חיבור לרשת');
+  const {data:{session}}=await c.auth.getSession();
+  const t=session?.access_token;
+  if(!t)throw new Error('יש להתחבר קודם: טאב "מלאי" ← קישור למייל');
+  return t;
+}
+async function aiCall(action,body){
+  const token=await aiToken();
+  let res;
+  try{
+    res=await fetch(`${SB_URL}/functions/v1/ai-gateway`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`,'apikey':SB_ANON},body:JSON.stringify({action,...body})});
+  }catch(e){throw new Error('אין חיבור לשרת ה-AI');}
   let data=null;
   try{data=await res.json();}catch(e){}
-  if(!data){
-    if(res.status===404)throw new Error(`הנתיב ${path} לא קיים ב-Worker — צריך לפרוס מחדש את worker.js`);
-    throw new Error(`שגיאת שרת (${res.status})`);
-  }
+  if(res.status===401)throw new Error('פג תוקף החיבור — התחבר מחדש בטאב המלאי');
+  if(!data)throw new Error(`שגיאת שרת (${res.status})`);
   if(data.ok===false||data.error)throw new Error(data.error||`שגיאת שרת (${res.status})`);
-  return data.text||'';
+  return data;
 }
-function parseAIJson(text){
-  const m=String(text).replace(/```json|```/g,'').trim().match(/\{[\s\S]*\}/);
-  if(!m)throw new Error('התשובה מה-AI לא בפורמט צפוי');
-  return JSON.parse(m[0]);
+// המחירון נשלח לשרת בכל ניתוח, כך שהמודל בוחר רק שמות שקיימים ב-PL
+function priceListText(){
+  return Object.entries(PL).map(([k,v])=>`- ${k}: ${v.b}₪`).join('\n')
+    +'\n- נסיעות: 1.5₪/ק"מ הלוך וחזור\n- תושבי בית חוגלה: הנחה 25%';
+}
+// השרת מחזיר {name,qty}; המחיר מחושב כאן כי הוא תלוי ב-PL ובמצב התושב
+function quoteToUI(q){
+  return{...q,items:(q.items||[]).map(it=>({id:Date.now()+Math.random(),name:it.name,qty:it.qty||1,price:pfr(it.name,q.isLocal)*(it.qty||1)}))};
+}
+// תמונה מהנייד היא 4–8MB ולפעמים HEIC. לזיהוי קטגוריה מספיק 1024px,
+// ומעבר דרך canvas גם מבטיח JPEG — הפורמט היחיד שבטוח מתקבל בשער.
+function imgForAI(dataUrl,max=1024){
+  return new Promise((res,rej)=>{
+    const im=new Image();
+    im.onload=()=>{
+      const s=Math.min(1,max/Math.max(im.width,im.height));
+      const cv=document.createElement('canvas');
+      cv.width=Math.max(1,Math.round(im.width*s));cv.height=Math.max(1,Math.round(im.height*s));
+      cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);
+      res(cv.toDataURL('image/jpeg',.85));
+    };
+    im.onerror=()=>rej(new Error('הדפדפן לא מצליח לפתוח את התמונה — בחר קטגוריה ידנית'));
+    im.src=dataUrl;
+  });
 }
 async function aiImg(b64){const c=await aiQ(b64,true);if(c)document.getElementById('AIR').textContent=c;}
 async function aiQ(b64,v=false){
   try{
     const names=catNames();
     if(!names.length)return null;
-    const text=await workerAI('/gemini-vision',{prompt:`בחר קטגוריה אחת מ: ${names.join(', ')}\nJSON בלבד: {"category":"...","description":"..."}`,image:b64});
-    const p=parseAIJson(text);
-    if(v)document.getElementById('AID').textContent=p.description||'';
-    return names.includes(p.category)?p.category:null;
+    const d=await aiCall('vision',{image:await imgForAI(b64),categories:names});
+    if(v)document.getElementById('AID').textContent=d.description||'';
+    return d.category||null;
   }catch(e){
     if(v){document.getElementById('AIR').textContent='בחר ידנית';document.getElementById('AID').textContent=e.message;}
     return null;
@@ -902,11 +933,8 @@ async function transcribeRec(){
   document.getElementById('RECTR').style.display='none';
   try{
     const dataUrl=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=()=>rej(new Error('קריאת הקובץ נכשלה'));r.readAsDataURL(recFile);});
-    const ps=Object.entries(PL).map(([k,v])=>`- ${k}: ${v.b}₪`).join('\n');
-    const prompt=`זוהי הקלטת שיחת טלפון של הושעיה, אמן בלונים מבית חוגלה.\n\nמחירון:\n${ps}\n- נסיעות: 1.5₪/ק"מ לוך וחזור\n- תושבי בית חוגלה: הנחה 25%\n\nתמלל את השיחה וחלץ מידע לצורך הצעת מחיר. החזר JSON בלבד:\n{"clientName":"","clientPhone":"","eventType":"","eventDate":"YYYY-MM-DD","distanceKm":0,"isLocal":false,"items":[{"name":"שם מהמחירון","qty":1}],"notes":"","transcript":"תמלול קצר של השיחה"}`;
-    const text=await workerAI('/gemini-audio',{prompt,audio:dataUrl,mime:audioMime(recFile)});
-    const parsed=parseAIJson(text);
-    parsed.items=(parsed.items||[]).map(it=>({id:Date.now()+Math.random(),name:it.name,qty:it.qty||1,price:pfr(it.name,parsed.isLocal)*(it.qty||1)}));
+    const d=await aiCall('audio',{audio:dataUrl,mime:audioMime(recFile),priceList:priceListText()});
+    const parsed=quoteToUI(d.quote);
     recParsed=parsed;
     sRecSt('ok','✅ תומלל בהצלחה!');
     const tr=document.getElementById('RECTR');
@@ -1164,12 +1192,10 @@ async function runImport(){
   if(!rows){
     btn.disabled=true;btn.textContent='⏳ מנתח...';
     sImpSt('ld','⏳ ה-AI מסדר את הרשימה...');
-    const prompt=`אתה מסדר רשימת מלאי של עסק בלונים.\nהקטגוריות האפשריות: ${INV_CATS.join(', ')}\n\nהחזר JSON בלבד, ללא markdown:\n{"items":[{"name":"שם הפריט","cat":"אחת מהקטגוריות","qty":0,"min":0}]}\n\nכללים:\n- name: שם קריא בעברית הכולל סוג, צבע וגודל אם הם מופיעים בשורה\n- cat: בלוני לטקס רגילים → "לטקס"; פויל/מיילר (לב, עגול, כוכב, ספרה) → "מיילר"; בלוני צורות/נקניק/260Q → "טוויסטינג"; גז או בלוני הליום → "הליום"; חוטים, משקולות, משאבות, סרטים → "אביזרים"; כל השאר → "אחר"\n- qty: הכמות שמופיעה בשורה. אם אין מספר — 0\n- min: כמות מינימום רק אם צוינה במפורש, אחרת 0\n- אל תמציא פריטים שלא מופיעים ברשימה\n\nהרשימה:\n${text}`;
     try{
-      const out=await workerAI('/gemini',{prompt});
-      const p=parseAIJson(out);
-      rows=Array.isArray(p.items)?p.items:null;
-      if(!rows)throw new Error('לא זוהו פריטים ברשימה');
+      const d=await aiCall('inventory',{text});
+      rows=Array.isArray(d.items)?d.items:null;
+      if(!rows||!rows.length)throw new Error('לא זוהו פריטים ברשימה');
     }catch(e){
       sImpSt('er',`❌ ${e.message}`);
       btn.disabled=false;btn.textContent='🤖 נתח רשימה';
@@ -1280,8 +1306,16 @@ async function qsend(){const n=document.getElementById('QCN')?.value||'',dist=+(
     if(doc.id){sQSt('ok',`✅ נשלח! מסמך: ${doc.number||doc.id}`);qHist=[{name:n,total:grand,evt:document.getElementById('QET')?.value||'',date:new Date().toLocaleDateString('he-IL')},...qHist].slice(0,50);}else sQSt('er',`❌ ${doc.message||JSON.stringify(doc)}`);}
   catch(e){sQSt('er',`❌ ${e.message}`);}}
 function sQSt(type,msg){const el=document.getElementById('QIST');el.className=`st ${type}`;el.textContent=msg;el.style.display='block';}
-async function qparse(){const chat=document.getElementById('QCHAT')?.value||'';if(!chat.trim())return;sPSt('ld','⏳ מנתח...');const ps=Object.entries(PL).map(([k,v])=>`- ${k}: ${v.b}₪`).join('\n');const prompt=`אתה עוזר של הושעיה, אמן בלונים מבית חוגלה.\nמחירון:\n${ps}\n- נסיעות: 1.5₪/ק"מ לוך וחזור\n- תושבי בית חוגלה: הנחה 25%\n\nחלץ מהשיחה JSON בלבד:\n{"clientName":"","clientPhone":"","eventType":"","eventDate":"YYYY-MM-DD","distanceKm":0,"isLocal":false,"items":[{"name":"שם מהמחירון","qty":1}],"notes":""}\n\nשיחה:\n${chat}`;
-  try{const text=await workerAI('/gemini',{prompt});const p=parseAIJson(text);p.items=(p.items||[]).map(it=>({id:Date.now()+Math.random(),name:it.name,qty:it.qty||1,price:pfr(it.name,p.isLocal)*(it.qty||1)}));pQ=p;sPSt('ok','✅ נותח!');rParsed(p);}catch(e){sPSt('er',`❌ ${e.message}`);}}
+async function qparse(){
+  const chat=document.getElementById('QCHAT')?.value||'';
+  if(!chat.trim())return;
+  sPSt('ld','⏳ מנתח...');
+  try{
+    const d=await aiCall('chat',{transcript:chat,priceList:priceListText()});
+    pQ=quoteToUI(d.quote);
+    sPSt('ok','✅ נותח!');
+    rParsed(pQ);
+  }catch(e){sPSt('er',`❌ ${e.message}`);}}
 function sPSt(type,msg){const el=document.getElementById('QPST');el.className=`st ${type}`;el.textContent=msg;el.style.display='block';}
 function rParsed(p){document.getElementById('QPD').style.display='block';let h='';if(p.clientName)h+=`👤 <b>שם:</b> ${p.clientName}<br>`;if(p.clientPhone)h+=`📞 <b>טלפון:</b> ${p.clientPhone}<br>`;if(p.eventType)h+=`🎉 <b>אירוע:</b> ${p.eventType}<br>`;if(validDate(p.eventDate))h+=`📅 <b>תאריך:</b> ${new Date(p.eventDate).toLocaleDateString('he-IL')}<br>`;if(p.distanceKm>0)h+=`🚗 ${p.distanceKm} ק"מ<br>`;if(p.isLocal)h+=`🏘️ <b>תושב/ת יישוב</b> — הנחה 25%<br>`;
   const unknown=p.items.filter(i=>!PL[i.name]);

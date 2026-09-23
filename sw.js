@@ -1,6 +1,6 @@
 // Service worker — הושעיה אמן בלונים
 // העלה את המספר בכל שינוי שצריך לנקות מטמון ישן.
-const VERSION = 'v1';
+const VERSION = 'v2';
 const SHELL = `shell-${VERSION}`;
 
 // רק נכסים שמשתנים לעיתים רחוקות. ה-HTML עצמו לא נכנס לכאן בכוונה.

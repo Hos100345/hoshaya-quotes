@@ -6,28 +6,43 @@
 
 ## מבנה
 - `index.html` — האפליקציה כולה. ללא build step, ללא framework.
-- `worker.js` — Cloudflare Worker. מחזיק את מפתחות Gemini ו-Morning בצד שרת ומספק CORS.
+- `supabase/functions/ai-gateway/index.ts` — שער ה-AI. מחזיק את המפתחות בצד שרת.
 
-## Worker — נקודות קצה
-| נתיב | שימוש באפליקציה |
-|---|---|
-| `POST /gemini` | ניתוח שיחת וואטסאפ, ייבוא רשימת מלאי |
-| `POST /gemini-vision` | זיהוי קטגוריה אוטומטי לתמונה שמועלית לקטלוג |
-| `POST /gemini-audio` | תמלול הקלטת שיחה → הצעת מחיר |
-| `POST /morning` | הפקת דרישת תשלום |
+## AI — הכול דרך Supabase Edge Function `ai-gateway`
+| פעולה | שימוש באפליקציה | מנוע |
+|---|---|---|
+| `health` | אבחון (פתוח, בלי טוקן) | — |
+| `chat` | ניתוח שיחת וואטסאפ מודבקת → הצעת מחיר | Claude |
+| `inventory` | הדבקת רשימת מלאי → שורות מובנות | Claude |
+| `vision` | זיהוי קטגוריה לתמונה שמועלית לקטלוג | Claude |
+| `audio` | תמלול הקלטת שיחה → הצעת מחיר | Gemini לתמלול, Claude לחילוץ |
 
-⚠️ **ה-Worker לא נפרס מגיט.** שינוי ב-`worker.js` דורש deploy ידני ב-Cloudflare.
-Secrets נדרשים שם: `GEMINI_KEY`, `MORNING_ID`, `MORNING_SECRET`.
+**אימות:**
+```
+curl -X POST https://sccivxenkyzxolpraexf.supabase.co/functions/v1/ai-gateway \
+  -H 'Content-Type: application/json' -d '{"action":"health"}'
+```
+מחזיר גרסה, מודל, ואילו מפתחות קיימים (בלי הערכים).
 
-**אימות אחרי deploy:** `curl https://hoshaya-worker.hoshaya.workers.dev/health`
-מחזיר גרסה, אילו secrets מוגדרים ורשימת נתיבים.
-`GET /models` מחזיר את המודלים שגוגל באמת מציעה למפתח — התשובה לשאלה
-"איזה מודל לשים ב-`GEMINI_MODELS`" בלי לנחש.
-
-**המודל אינו קשיח.** `GEMINI_MODELS` היא רשימה לפי סדר העדפה, והקוד יורד בה
-כשמודל לא נמצא או לא נתמך. גוגל מוציאה מודלים משימוש מדי כמה חודשים, וזה מה
-שהשבית את הדבקת השיחה בעבר (`gemini-1.5-flash` נעלם). שגיאה שאינה "מודל לא
-נמצא" — מפתח שגוי, מכסה — עוצרת מיד ולא ממשיכה לדגם הבא.
+### כללים שנלמדו
+- **`verify_jwt=false` כאן הוא מכוון**, כדי ש-`health` יהיה ניתן לאבחון ב-curl.
+  כל פעולה אחרת מאמתת בעצמה: טוקן Supabase + אימייל מול `ADMIN_EMAILS`.
+  בלי טוקן — 401.
+- **הפרונט חייב להיות מחובר ל-Supabase** (אותה התחברות של טאב המלאי) כדי
+  שה-AI יעבוד. בלי זה מוצגת הודעה שמפנה לטאב המלאי, לא כשל סתום.
+- **אין `zodOutputFormat`.** ה-subpath `@anthropic-ai/sdk/helpers/zod` לא נפתר
+  ב-runtime של Supabase והפונקציה לא עולה בכלל (`worker boot error, path not
+  found`). במקומו: המודל מתבקש JSON, והתשובה עוברת `coerce` בקוד — שגם מנרמל
+  תאריך, כמויות וקטגוריות.
+- **לא לקחת `content[0]`.** עם thinking אדפטיבי הבלוק הראשון עשוי להיות
+  `thinking`. `textOf()` סורק אחרי הבלוק מסוג `text`.
+- **תמלול דורש Gemini.** ה-Messages API של Claude לא מקבל קלט אודיו. אם אין
+  מפתח Gemini ב-Secrets, `audio` מחזירה 501 עם הסבר — לא כשל עמום.
+- **Edge Functions לא נפרסות מגיט.** מיזוג PR שנוגע ב-`supabase/functions/`
+  לא מעלה כלום לאוויר; צריך `deploy_edge_function` מפורש.
+- **ה-Worker ב-Cloudflare פרש.** הוא דרש deploy ידני, ושם נשאר קוד שקרא למודל
+  שגוגל הוציאה משימוש — ולכן הדבקת השיחה והתמלול לא עבדו בפועל. Supabase
+  נפרס מכאן והמפתחות כבר שם.
 
 ## מלאי — Supabase הוא מקור האמת
 המלאי נקרא ונכתב מול `inventory.items` בפרויקט `sccivxenkyzxolpraexf`.
@@ -60,7 +75,7 @@ Secrets נדרשים שם: `GEMINI_KEY`, `MORNING_ID`, `MORNING_SECRET`.
 - אייקון בלון, נוצר בקוד (`icons/*.png`, 192/512 + maskable + apple-touch).
 - ה-service worker **לא** מכניס את ה-HTML למטמון מראש: ניווט הוא network-first,
   אחרת פריסה חדשה של Pages הייתה מוגשת מגרסה ישנה.
-- נכסים סטטיים בלבד נשמרים במטמון. דרייב, Supabase, ה-Worker וגופנים עוברים ישר לרשת.
+- נכסים סטטיים בלבד נשמרים במטמון. דרייב, Supabase וגופנים עוברים ישר לרשת.
 - שינוי ב-`sw.js` מחייב העלאת `VERSION` בראש הקובץ כדי לנקות מטמון ישן.
 
 ## שליחת תמונה בוואטסאפ
