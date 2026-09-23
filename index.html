@@ -790,6 +790,25 @@ function sbClient(){
 }
 function sAuthSt(t,m){const el=document.getElementById('INVAUTHST');el.className=`st ${t}`;el.textContent=m;el.style.display='block';}
 
+function isAuthError(err){
+  if(!err)return false;
+  const code=String(err.code||''),msg=String(err.message||'').toLowerCase();
+  return code==='PGRST301'||code==='PGRST302'||code==='401'||err.status===401
+    ||msg.includes('jwt')||msg.includes('expired')||msg.includes('unauthor')
+    ||msg.includes('not authenticated')||msg.includes('invalid authentication')
+    ||msg.includes('invalid claim')||msg.includes('refresh token');
+}
+// פג תוקף / אין הרשאה — לא להציג רשימה ריקה, שנראית כאילו המלאי נמחק
+function showInvExpired(){
+  invUser=null;invItems=[];updateInvStats();
+  document.getElementById('INVMAIN').style.display='none';
+  document.getElementById('INVAUTH').style.display='block';
+  const last=localStorage.getItem('inv_last_email')||'';
+  const inp=document.getElementById('INVEMAIL');
+  if(last&&!inp.value)inp.value=last;
+  sAuthSt('er','⚠️ פג תוקף החיבור — התחבר מחדש. המלאי עצמו שמור בשרת ולא נמחק.');
+}
+
 async function initInv(){
   const c=sbClient();
   if(!c){showInvGate('❌ ספריית Supabase לא נטענה — בדוק חיבור לרשת');return;}
@@ -814,10 +833,18 @@ function applyInvSession(session){
     return;
   }
   invUser=session?.user||null;
-  if(!invUser){invItems=[];updateInvStats();showInvGate();return;}
+  if(!invUser){
+    invItems=[];updateInvStats();
+    const last=localStorage.getItem('inv_last_email')||'';
+    const inp=document.getElementById('INVEMAIL');
+    if(last&&!inp.value)inp.value=last;
+    showInvGate();
+    return;
+  }
   document.getElementById('INVAUTH').style.display='none';
   document.getElementById('INVMAIN').style.display='block';
   document.getElementById('INVWHO').textContent=invUser.email;
+  try{localStorage.setItem('inv_last_email',invUser.email);}catch(e){}
   loadInv();
 }
 async function invLogin(){
@@ -828,7 +855,7 @@ async function invLogin(){
   const {error}=await sbClient().auth.signInWithOtp({email,options:{emailRedirectTo:location.href.split('#')[0]}});
   btn.disabled=false;
   if(error)sAuthSt('er','❌ '+error.message);
-  else sAuthSt('ok','✅ נשלח קישור לאימייל — יש לפתוח אותו במכשיר הזה');
+  else{try{localStorage.setItem('inv_last_email',email);}catch(e){}sAuthSt('ok','✅ נשלח קישור לאימייל — יש לפתוח אותו במכשיר הזה');}
 }
 async function invLogout(){await sbClient().auth.signOut();toast('התנתקת מהמלאי');}
 
@@ -841,8 +868,16 @@ async function loadInv(){
   if(!invItems.length)list.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">טוען מלאי…</div>';
   const {data,error}=await c.from('items').select('id,name,category,qty,min_qty').eq('active',true).order('category').order('name');
   if(error){
-    list.innerHTML=`<div style="text-align:center;padding:26px;color:var(--pink);font-size:12px;line-height:1.7">❌ ${escHtml(error.message)}</div>`;
+    if(isAuthError(error)){showInvExpired();return;}
+    list.innerHTML=`<div style="text-align:center;padding:26px;color:var(--pink);font-size:12px;line-height:1.7">❌ ${escHtml(error.message)}<br><button onclick="loadInv()" style="margin-top:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:7px 16px;border-radius:8px;font-family:'Heebo',sans-serif;font-size:12px;cursor:pointer">↻ נסה שוב</button></div>`;
     return;
+  }
+  // RLS מחזיר 200 עם 0 שורות כשאין הרשאה — זהה לחלוטין למלאי ריק.
+  // לפני שמכריזים "ריק", מוודאים שהסשן באמת חי ושייך לבעלים.
+  if(!(data||[]).length){
+    const {data:{session}}=await c.auth.getSession();
+    const em=(session?.user?.email||'').toLowerCase();
+    if(!em||em!==INV_OWNER){showInvExpired();return;}
   }
   invItems=(data||[]).map(rowToItem);
   renderInv();
@@ -859,7 +894,10 @@ function pushQty(id){
     const it=invItems.find(x=>x.id===id);
     if(!it)return;
     const {error}=await sbClient().from('items').update({qty:it.qty,updated_by:APP_SOURCE}).eq('id',id);
-    if(error){toast('❌ לא נשמר: '+error.message,1);loadInv();}
+    if(error){
+      if(isAuthError(error)){showInvExpired();return;}
+      toast('❌ לא נשמר: '+error.message,1);loadInv();
+    }
   },500));
 }
 function flushQty(){_qtyTimers.forEach((t,id)=>{clearTimeout(t);_qtyTimers.delete(id);const it=invItems.find(x=>x.id===id);if(it)sbClient().from('items').update({qty:it.qty,updated_by:APP_SOURCE}).eq('id',id);});}
@@ -926,7 +964,10 @@ async function saveInvItem(){
   const {error}=id
     ? await c.from('items').update(row).eq('id',Number(id))
     : await c.from('items').insert(row);
-  if(error){toast('❌ '+error.message,1);return;}
+  if(error){
+    if(isAuthError(error)){closeInvM();showInvExpired();return;}
+    toast('❌ '+error.message,1);return;
+  }
   closeInvM();await loadInv();toast(id?'✅ עודכן':'✅ נוסף');
 }
 function closeInvM(){document.getElementById('INVM').classList.remove('open');}
@@ -1046,6 +1087,7 @@ async function applyImport(){
   }
   btn.disabled=false;btn.textContent='✅ אשר ומזג למלאי';
   closeImp();
+  if(err&&isAuthError(err)){showInvExpired();return;}
   await loadInv();
   if(err)toast('❌ '+err.message,1);
   else toast(`✅ ${inserts.length} נוספו, ${updates.length} עודכנו`);
