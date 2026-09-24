@@ -438,6 +438,10 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
     <button class="chip" onclick="invFC('אחר',this)">📦 אחר</button>
   </div>
 
+  <!-- Size filter — נבנה לפי מה שבאמת קיים בקטגוריה -->
+  <div class="fscr" id="INVSZC" style="margin-bottom:8px;display:none"></div>
+  <input class="inp" id="INVQ" placeholder="🔎 חיפוש בשם — צבע, ספרה, גודל" oninput="invSearchInp(this.value)" style="margin-bottom:10px">
+
   <!-- Items list -->
   <div id="INVLIST"></div>
 
@@ -999,7 +1003,7 @@ const APP_SOURCE='אפליקציה';
 // חייב להתאים ל-CHECK על inventory.items.category
 const INV_CATS=['לטקס','מיילר','טוויסטינג','הליום','אביזרים','אחר'];
 
-let SB=null,invUser=null,invItems=[],invCat='הכל';
+let SB=null,invUser=null,invItems=[],invCat='הכל',invSize='הכל',invQ='';
 
 function sbClient(){
   if(SB)return SB;
@@ -1037,6 +1041,10 @@ async function initInv(){
   const {data:{session}}=await c.auth.getSession();
   applyInvSession(session);
   c.auth.onAuthStateChange((_ev,sess)=>applyInvSession(sess));
+  // האזנה אחת מואצלת: שם גודל מכיל גרש כפול (34"), ו-onclick עם מחרוזת כזו
+  // בתוך תכונת HTML נחתך באמצע — אותה מלכודת שכבר נשרפנו בה ברשימת המחירון.
+  const szc=document.getElementById('INVSZC');
+  if(szc&&!szc._bound){szc._bound=1;szc.addEventListener('click',e=>{const b=e.target.closest('[data-sz]');if(!b)return;invSize=b.dataset.sz;renderInv();});}
   // חזרה ללשונית או למסך → קוראים מחדש מהשרת
   document.addEventListener('visibilitychange',()=>{
     if(document.visibilityState==='visible'&&cT===4&&invUser)loadInv();
@@ -1134,24 +1142,71 @@ function invAdj(id,delta){
   it.qty=next;renderInv();pushQty(id);
 }
 
-function invFC(c,btn){invCat=c;document.querySelectorAll('#INVFSC .chip').forEach(x=>x.classList.remove('on'));btn.classList.add('on');renderInv();}
+function invFC(c,btn){
+  invCat=c;invSize='הכל';
+  document.querySelectorAll('#INVFSC .chip').forEach(x=>x.classList.remove('on'));
+  btn.classList.add('on');renderInv();}
+// הגודל נגזר מהשם, כי הוא מה שבאמת נכתב שם: 34" · 12 אינץ' · 260Q.
+// אין עמודת גודל ב-DB, ולהוסיף אחת הייתה דורשת לתייג מחדש את כל המלאי.
+function invSizeOf(name){
+  const t=String(name||'');
+  let m=t.match(/(\d{1,3})\s*(?:"|''|”|״|אינ)/);
+  if(m)return m[1]+'"';
+  m=t.match(/(\d{3})\s*Q\b/i);
+  if(m)return m[1]+'Q';
+  return '';
+}
+const NO_SIZE='ללא גודל';
+function invSizeList(items){
+  const c={};
+  items.forEach(i=>{const k=invSizeOf(i.name)||NO_SIZE;c[k]=(c[k]||0)+1;});
+  const keys=Object.keys(c).sort((a,b)=>{
+    if(a===NO_SIZE)return 1;if(b===NO_SIZE)return -1;
+    return parseInt(a,10)-parseInt(b,10);
+  });
+  return keys.map(k=>({key:k,count:c[k]}));
+}
+function invSearchInp(v){invQ=v;renderInv();}
+function renderSizeChips(sizes){
+  const wrap=document.getElementById('INVSZC');
+  if(!wrap)return;
+  // שורת גדלים רק כשיש באמת יותר מגודל אחד לבחור ממנו
+  if(invCat==='הכל'||sizes.length<2){wrap.style.display='none';wrap.innerHTML='';return;}
+  const total=sizes.reduce((n,s)=>n+s.count,0);
+  wrap.style.display='';
+  wrap.innerHTML=`<button class="chip${invSize==='הכל'?' on':''}" data-sz="הכל">כל הגדלים <span style="opacity:.55">${total}</span></button>`
+    +sizes.map(s=>`<button class="chip${s.key===invSize?' on':''}" data-sz="${escHtml(s.key)}">${escHtml(s.key)} <span style="opacity:.55">${s.count}</span></button>`).join('');
+}
 function updateInvStats(){const total=invItems.length;const missing=invItems.filter(i=>i.qty<i.min).length;document.getElementById('INV_TOTAL').textContent=total;document.getElementById('INV_MISSING').textContent=missing;document.getElementById('INV_OK').textContent=total-missing;}
 function renderInv(){
   const list=document.getElementById('INVLIST');
   updateInvStats();
-  const filtered=invCat==='הכל'?invItems:invItems.filter(i=>i.cat===invCat);
+  const base=invCat==='הכל'?invItems:invItems.filter(i=>i.cat===invCat);
+  const sizes=invSizeList(base);
+  if(invSize!=='הכל'&&!sizes.some(x=>x.key===invSize))invSize='הכל';
+  renderSizeChips(sizes);
+  let filtered=base;
+  if(invCat!=='הכל'&&invSize!=='הכל')filtered=filtered.filter(i=>(invSizeOf(i.name)||NO_SIZE)===invSize);
+  const q=normName(invQ||'');
+  if(q)filtered=filtered.filter(i=>normName(i.name).includes(q));
   if(!filtered.length){
-    list.innerHTML=invItems.length
-      ? '<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">אין פריטים בקטגוריה זו</div>'
-      : '<div style="text-align:center;padding:34px 20px;color:var(--muted);font-size:13px;line-height:1.8">📦 המלאי ריק<br>"＋ הוסף פריט" לפריט בודד, או "📥 ייבוא" לרשימה שלמה</div>';
+    list.innerHTML=!invItems.length
+      ? '<div style="text-align:center;padding:34px 20px;color:var(--muted);font-size:13px;line-height:1.8">📦 המלאי ריק<br>"＋ הוסף פריט" לפריט בודד, או "📥 ייבוא" לרשימה שלמה</div>'
+      : `<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">אין פריטים${q?' לחיפוש "'+escHtml(invQ)+'"':''}${invSize!=='הכל'?' בגודל '+escHtml(invSize):''}${invCat!=='הכל'?' בקטגוריית '+escHtml(invCat):''}</div>`;
     return;
   }
   let html='';
   if(invCat==='הכל'){
-    INV_CATS.forEach(cat=>{const items=filtered.filter(i=>i.cat===cat);if(!items.length)return;html+=`<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:10px 0 6px;padding-right:2px">${escHtml(cat)}</div>`;html+=items.map(i=>invItemHTML(i)).join('');});
+    INV_CATS.forEach(cat=>{const items=filtered.filter(i=>i.cat===cat);if(!items.length)return;html+=invGroupHead(cat);html+=items.map(i=>invItemHTML(i)).join('');});
+  }else if(invSize==='הכל'&&sizes.length>1){
+    // קטגוריה נבחרה ולא גודל — מציגים אותה מחולקת לגדלים, כדי שהרשימה
+    // תהיה קריאה גם כשיש עשרות פריטים מאותו סוג (ספרות 0–9 בכמה גדלים).
+    sizes.forEach(sz=>{const items=filtered.filter(i=>(invSizeOf(i.name)||NO_SIZE)===sz.key);if(!items.length)return;html+=invGroupHead(sz.key);html+=items.map(i=>invItemHTML(i)).join('');});
   }else{html=filtered.map(i=>invItemHTML(i)).join('');}
   list.innerHTML=html;
 }
+function invGroupHead(t){return `<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:10px 0 6px;padding-right:2px">${escHtml(t)}</div>`;}
+
 function invItemHTML(i){
   const isMissing=i.qty<i.min;
   const pct=i.min>0?Math.min(100,Math.round(i.qty/i.min*100)):100;
