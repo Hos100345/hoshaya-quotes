@@ -56,6 +56,10 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
 /* ── CATALOG ── */
 .fscr{display:flex;gap:6px;overflow-x:auto;padding-bottom:7px;scrollbar-width:none;margin-bottom:11px}
 .fscr::-webkit-scrollbar{display:none}
+/* fwrap — כל הקטגוריות גלויות בבת אחת. סרגל גלילה אופקי מסתיר אפשרויות
+   מאחורי הקצה, ובנייד לא ברור בכלל שיש עוד. */
+.fscr.fwrap{flex-wrap:wrap;overflow-x:visible;padding-bottom:0;row-gap:6px;margin-bottom:9px}
+.fscr.fwrap .chip{padding:5px 10px}
 .chip{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:5px 11px;white-space:nowrap;color:var(--muted);font-family:'Heebo',sans-serif;font-size:11px;cursor:pointer;transition:all .2s;flex-shrink:0}
 .chip.on{background:var(--blue);color:#fff;border-color:var(--blue);font-weight:700}
 .gg{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}
@@ -431,7 +435,7 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
   </div>
 
   <!-- Category filter -->
-  <div class="fscr" id="INVFSC" style="margin-bottom:10px">
+  <div class="fscr fwrap" id="INVFSC" style="margin-bottom:10px">
     <button class="chip on" onclick="invFC('הכל',this)">הכל</button>
     <button class="chip" onclick="invFC('לטקס',this)">🎈 לטקס</button>
     <button class="chip" onclick="invFC('מיילר',this)">✨ מיילר</button>
@@ -442,7 +446,7 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
   </div>
 
   <!-- Size filter — נבנה לפי מה שבאמת קיים בקטגוריה -->
-  <div class="fscr" id="INVSZC" style="margin-bottom:8px;display:none"></div>
+  <div class="fscr fwrap" id="INVSZC" style="margin-bottom:8px;display:none"></div>
   <input class="inp" id="INVQ" placeholder="🔎 חיפוש בשם — צבע, ספרה, גודל" oninput="invSearchInp(this.value)" style="margin-bottom:10px">
 
   <!-- Items list -->
@@ -498,7 +502,7 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
   <div class="msh" style="max-height:86vh;display:flex;flex-direction:column">
     <div class="mhdl"></div>
     <div class="mttl">🔎 בחר פריט מהמחירון</div>
-    <div class="fscr" id="QPKC" style="margin-bottom:8px"></div>
+    <div class="fscr fwrap" id="QPKC" style="margin-bottom:8px"></div>
     <input class="inp" id="QPKQ" placeholder="חיפוש — שם פריט או קטגוריה" oninput="pickSearch(this.value)" style="margin-bottom:8px">
     <div id="QPKL" style="overflow-y:auto;flex:1;min-height:0;margin-bottom:10px"></div>
     <button class="mbt s" onclick="closePick()">סגור</button>
@@ -1464,6 +1468,9 @@ function renderPick(){
     +keys.map(k=>`<button class="pkrow" data-pk="${escHtml(k)}"><span style="text-align:right;min-width:0">${escHtml(k)}${PL[k].n?`<br><span style="font-size:9px;color:var(--muted)">${escHtml(PL[k].n)}</span>`:''}</span><span style="color:var(--gold);font-weight:700;white-space:nowrap">${PL[k].b}₪<span style="color:var(--muted);font-weight:400;font-size:9px"> ${escHtml(PL[k].u)}</span></span></button>`).join('')
   ).join('');
 }
+// תווית קצרה לצ'יפ בלבד; הקטגוריה עצמה נשארת בשמה המלא ב-PL ובכותרות
+const CAT_SHORT={'עיצוב שולחנות':'שולחנות','תוספות עיצוב':'תוספות','עיצוב חדרים':'חדרים','סדנאות וקורסים':'סדנאות'};
+function catLabel(c){return CAT_SHORT[c]||c;}
 function plCats(){const o=[];Object.values(PL).forEach(v=>{if(!o.includes(v.c))o.push(v.c);});return o;}
 function renderPickCats(){
   const w=document.getElementById('QPKC');
@@ -1472,7 +1479,7 @@ function renderPickCats(){
   const order=[STORE].concat(plCats().filter(c=>c!==STORE));
   const cnt=c=>Object.values(PL).filter(v=>v.c===c).length;
   w.innerHTML=`<button class="chip${qPickCat==='הכל'?' on':''}" data-pc="הכל">הכל <span style="opacity:.55">${Object.keys(PL).length}</span></button>`
-    +order.map(c=>`<button class="chip${qPickCat===c?' on':''}" data-pc="${escHtml(c)}">${c===STORE?'🛒 ':''}${escHtml(c)} <span style="opacity:.55">${cnt(c)}</span></button>`).join('');
+    +order.map(c=>`<button class="chip${qPickCat===c?' on':''}" data-pc="${escHtml(c)}">${c===STORE?'🛒 ':''}${escHtml(catLabel(c))} <span style="opacity:.55">${cnt(c)}</span></button>`).join('');
 }
 function pickCat(c){qPickCat=c;renderPick();}
 function pickItem(name){
