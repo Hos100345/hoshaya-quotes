@@ -498,6 +498,7 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
   <div class="msh" style="max-height:86vh;display:flex;flex-direction:column">
     <div class="mhdl"></div>
     <div class="mttl">🔎 בחר פריט מהמחירון</div>
+    <div class="fscr" id="QPKC" style="margin-bottom:8px"></div>
     <input class="inp" id="QPKQ" placeholder="חיפוש — שם פריט או קטגוריה" oninput="pickSearch(this.value)" style="margin-bottom:8px">
     <div id="QPKL" style="overflow-y:auto;flex:1;min-height:0;margin-bottom:10px"></div>
     <button class="mbt s" onclick="closePick()">סגור</button>
@@ -606,7 +607,7 @@ const PL={
 "מפגש קורס":{b:400,u:"מפגש",c:"סדנאות וקורסים"},
 "בלון לטקס - אוויר":{b:2,u:"יחידה",c:STORE},
 "בלון לטקס - הליום":{b:5,u:"יחידה",c:STORE},
-"בלון פיסול/צורות":{b:10,u:"יחידה",c:STORE},
+"בלון פיסול/צורות":{b:10,u:"יחידה",c:STORE,a:["נקניק","בלון נקניק","חיות בלונים","260Q"]},
 'מיילר 5" - אוויר':{b:5,u:"יחידה",c:STORE},
 "מיילר לב 18 - אוויר":{b:8,u:"יחידה",c:STORE},
 "מיילר לב 18 - הליום":{b:15,u:"יחידה",c:STORE},
@@ -616,8 +617,8 @@ const PL={
 "מיילר 32 - הליום":{b:35,u:"יחידה",c:STORE},
 "מיילר 18 עם כיתוב - הליום":{b:25,u:"יחידה",c:STORE},
 "מיילר 18 עם תמונה - הליום":{b:48,u:"יחידה",c:STORE},
-'מיילר 5" + בסיס':{b:20,u:"יחידה",c:STORE},
-"משקולת":{b:5,u:"יחידה",c:STORE}};
+'מיילר 5" + בסיס':{b:20,u:"יחידה",c:STORE,a:["מספר קטן עם בסיס","מספרים קטנים עם בסיס","ספרה קטנה עם בסיס","ספרות קטנות עם בסיס","בלון מספר קטן","מיילר מספר קטן"]},
+"משקולת":{b:5,u:"יחידה",c:STORE,a:["משקולת לבלון","משקולות"]}};
 const HM=['תשרי','חשוון','כסלו','טבת','שבט','אדר','אדר א׳','אדר ב׳','ניסן','אייר','סיוון','תמוז','אב','אלול'];
 const HD=["א׳","ב׳","ג׳","ד׳","ה׳","ו׳","ז׳","ח׳","ט׳","י׳","י״א","י״ב","י״ג","י״ד","ט״ו","ט״ז","י״ז","י״ח","י״ט","כ׳","כ״א","כ״ב","כ״ג","כ״ד","כ״ה","כ״ו","כ״ז","כ״ח","כ״ט","ל׳"];
 const HY=[];for(let y=5715;y<=5810;y++)HY.push({v:y,l:`${y} (${y-3760})`});
@@ -906,7 +907,8 @@ async function aiCall(action,body){
 // המחירון נשלח לשרת בכל ניתוח, כך שהמודל בוחר רק שמות שקיימים ב-PL
 function priceListText(){
   return Object.entries(PL).map(([k,v])=>
-      `- [${v.c}] ${k}: ${v.b}₪ · ${v.u}${v.n?` (${v.n})`:''}`).join('\n')
+      `- [${v.c}] ${k}: ${v.b}₪ · ${v.u}${v.n?` (${v.n})`:''}${v.a?` · נקרא גם: ${v.a.join(' / ')}`:''}`).join('\n')
+    +'\n- "נקרא גם" = אותו פריט בניסוח שלקוחות משתמשים בו. תמיד החזר את השם שלפני הנקודתיים, לא את הכינוי.'
     +`\n- נסיעות: ${TRAVEL_RATE}₪/ק"מ הלוך וחזור · מינימום יציאה ${MIN_CALLOUT}₪ (לא חל על החנות)`
     +`\n- תושבי בית חוגלה: הנחה ${LOCAL_PCT}% על עיצוב אירועים בלבד — לא על ${STORE} ולא על נסיעות`;
 }
@@ -1019,7 +1021,7 @@ const APP_SOURCE='אפליקציה';
 // חייב להתאים ל-CHECK על inventory.items.category
 const INV_CATS=['לטקס','מיילר','טוויסטינג','הליום','אביזרים','אחר'];
 
-let qPickQ='';
+let qPickQ='',qPickCat='הכל';
 let SB=null,invUser=null,invItems=[],invCat='הכל',invSize='הכל',invQ='';
 
 function sbClient(){
@@ -1437,6 +1439,8 @@ function openPick(){
   if(inp)inp.value='';
   const box=document.getElementById('QPKL');
   if(box&&!box._bound){box._bound=1;box.addEventListener('click',e=>{const b=e.target.closest('[data-pk]');if(b)pickItem(b.dataset.pk);});}
+  const cbox=document.getElementById('QPKC');
+  if(cbox&&!cbox._bound){cbox._bound=1;cbox.addEventListener('click',e=>{const b=e.target.closest('[data-pc]');if(b)pickCat(b.dataset.pc);});}
   renderPick();
   document.getElementById('QPK').classList.add('open');
   setTimeout(()=>{if(inp)inp.focus();},250);
@@ -1446,15 +1450,31 @@ function closePickOut(e){if(e.target.id==='QPK')closePick();}
 function pickSearch(v){qPickQ=v;renderPick();}
 function renderPick(){
   const q=normName(qPickQ||'');
-  const hit=Object.keys(PL).filter(k=>!q||normName(k).includes(q)||normName(PL[k].c).includes(q));
+  let hit=Object.keys(PL);
+  if(qPickCat!=='הכל')hit=hit.filter(k=>PL[k].c===qPickCat);
+  // החיפוש תופס גם כינוי: "מספרים קטנים עם בסיס" הוא לא שם הפריט במחירון
+  if(q)hit=hit.filter(k=>normName(k).includes(q)||normName(PL[k].c).includes(q)||(PL[k].a||[]).some(x=>normName(x).includes(q)));
+  renderPickCats();
   const box=document.getElementById('QPKL');
-  if(!hit.length){box.innerHTML=`<div style="text-align:center;padding:26px;color:var(--muted);font-size:12px">לא נמצא פריט לחיפוש "${escHtml(qPickQ)}"</div>`;return;}
+  if(!hit.length){box.innerHTML=`<div style="text-align:center;padding:26px;color:var(--muted);font-size:12px">לא נמצא פריט${qPickQ?' לחיפוש "'+escHtml(qPickQ)+'"':''}${qPickCat!=='הכל'?' בקטגוריית '+escHtml(qPickCat):''}</div>`;return;}
   const g={};hit.forEach(k=>{(g[PL[k].c]=g[PL[k].c]||[]).push(k);});
   box.innerHTML=Object.entries(g).map(([cat,keys])=>
-    `<div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:1px;margin:10px 0 5px;padding-right:2px">${escHtml(cat)}</div>`
+    // כותרת קטגוריה מיותרת כשכבר סיננו לקטגוריה אחת
+    (qPickCat==='הכל'?`<div style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:1px;margin:10px 0 5px;padding-right:2px">${escHtml(cat)}</div>`:'')
     +keys.map(k=>`<button class="pkrow" data-pk="${escHtml(k)}"><span style="text-align:right;min-width:0">${escHtml(k)}${PL[k].n?`<br><span style="font-size:9px;color:var(--muted)">${escHtml(PL[k].n)}</span>`:''}</span><span style="color:var(--gold);font-weight:700;white-space:nowrap">${PL[k].b}₪<span style="color:var(--muted);font-weight:400;font-size:9px"> ${escHtml(PL[k].u)}</span></span></button>`).join('')
   ).join('');
 }
+function plCats(){const o=[];Object.values(PL).forEach(v=>{if(!o.includes(v.c))o.push(v.c);});return o;}
+function renderPickCats(){
+  const w=document.getElementById('QPKC');
+  if(!w)return;
+  // החנות ראשונה: זה מה שנמכר בשוטף, ובלעדיה היא נופלת לסוף הרשימה
+  const order=[STORE].concat(plCats().filter(c=>c!==STORE));
+  const cnt=c=>Object.values(PL).filter(v=>v.c===c).length;
+  w.innerHTML=`<button class="chip${qPickCat==='הכל'?' on':''}" data-pc="הכל">הכל <span style="opacity:.55">${Object.keys(PL).length}</span></button>`
+    +order.map(c=>`<button class="chip${qPickCat===c?' on':''}" data-pc="${escHtml(c)}">${c===STORE?'🛒 ':''}${escHtml(c)} <span style="opacity:.55">${cnt(c)}</span></button>`).join('');
+}
+function pickCat(c){qPickCat=c;renderPick();}
 function pickItem(name){
   // פריט שכבר בהצעה — מעלים כמות במקום לפתוח שורה כפולה
   const ex=qIt.find(i=>i.name===name);
