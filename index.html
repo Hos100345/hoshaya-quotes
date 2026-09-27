@@ -22,6 +22,7 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
 .bb::after{content:'';position:absolute;bottom:-12px;left:50%;transform:translateX(-50%);width:1px;height:20px;background:currentColor}
 @keyframes fu{0%{transform:translateY(110vh) rotate(-5deg)}100%{transform:translateY(-20vh) rotate(5deg)}}
 .app{position:relative;z-index:1;max-width:430px;margin:0 auto}
+}
 /* header */
 .hdr{padding:13px 15px 9px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:rgba(8,14,21,.93);backdrop-filter:blur(20px);position:sticky;top:0;z-index:30}
 .logo{font-size:18px;font-weight:900}.logo span{color:var(--bl)}
@@ -176,6 +177,14 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
 .mtxt{font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:14px}
 .mbt{width:100%;padding:11px;border-radius:10px;border:none;font-family:'Heebo',sans-serif;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:6px}
 .mbt.p{background:var(--blue);color:#fff}.mbt.s{background:var(--card);color:var(--text)}
+/* מסך רחב מ-430px (פלאפון מתקפל, טאבלט, מצב "אתר שולחני") השאיר את האפליקציה
+   בעמודה של 430px עם שוליים שחורים משני הצדדים — במסך 923px כמעט 500px
+   מבוזבזים, והקטלוג נמתח לעמוד ארוך במקום להתפרס. עכשיו הקטלוג מתרחב ומקבל
+   עוד עמודות, ולשוניות הטפסים נשארות ברוחב קריא במרכז. */
+@media(min-width:560px){
+  .app,.bnav{max-width:880px}
+  #T1,#T2,#T3,#T4{max-width:560px;margin-left:auto;margin-right:auto}
+  .gg{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
 </style>
 </head>
 <body>
