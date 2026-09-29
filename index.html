@@ -306,6 +306,12 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
       <button class="btn gr" onclick="qwa()">📲 פתח וואטסאפ</button>
     </div>
     <div class="card">
+      <div class="ct">תיעוד</div>
+      <div id="QSVST" class="st" style="display:none"></div>
+      <button class="btn gray" onclick="saveQuote(true)">💾 שמור הצעה לתיעוד</button>
+      <button class="btn gray" onclick="newQuote()" style="margin-top:6px">🆕 הצעה חדשה</button>
+    </div>
+    <div class="card">
       <div class="ct">דרישת תשלום — Morning</div>
       <div id="QIST" class="st" style="display:none"></div>
       <button class="btn pu" onclick="qsend()">🧾 שלח דרישת תשלום</button>
@@ -361,9 +367,14 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
 
   <!-- tab 3 - history -->
   <div id="QQ3" style="display:none">
+    <div class="fscr fwrap" id="HPER"></div>
     <div class="card">
-      <div class="ct">הצעות אחרונות</div>
-      <div id="QHIST" style="color:var(--muted);text-align:center;padding:18px;font-size:12px">אין היסטוריה עדיין</div>
+      <div class="ct">סיכום</div>
+      <div id="HSUM"></div>
+    </div>
+    <div class="card">
+      <div class="ct">הצעות</div>
+      <div id="QHIST" style="color:var(--muted);text-align:center;padding:18px;font-size:12px">טוען…</div>
     </div>
   </div>
 </div>
@@ -644,7 +655,7 @@ const MSC='58854R0q&Q.^*sVu6zW+4h7NzUFB[1sP';
 let cat=[],cF='הכל',cT=0,cFile=null,cData=null,sCat=null,uM='s',bF=[],bC=[];
 let driveFolders=[];   // [{id,name}] — תת-התיקיות של 📸 תמונות עבודות = הקטגוריות
 function catNames(){return driveFolders.map(f=>f.name);}
-let qIt=[],qLoc=false,qHist=[],pQ=null,eC=0;
+let qIt=[],qLoc=false,qHist=[],pQ=null,eC=0,curQuoteId=null,histPeriod='30';
 
 // ── BG ──
 const cols=['#4A7FB5','#7BB3D9','#5A9E5A','#FF6B9D','#F5C842'];
@@ -964,7 +975,7 @@ async function aiQ(b64,v=false){
 }
 
 // ── QUOTE ──
-function sqt(i){[0,1,2,3].forEach(j=>{document.getElementById(`QQ${j}`).style.display=j===i?'block':'none';document.getElementById(`QT${j}`).classList.toggle('on',j===i);});if(i===3)rHist();}
+function sqt(i){[0,1,2,3].forEach(j=>{document.getElementById(`QQ${j}`).style.display=j===i?'block':'none';document.getElementById(`QT${j}`).classList.toggle('on',j===i);});if(i===3)loadQuotes();}
 
 // ── CALENDAR ──
 async function qCal(){
@@ -1532,14 +1543,14 @@ function qcalc(){
   const dr=document.getElementById('QDRSN');if(dr)dr.style.display=t.dp>0?'block':'none';
   document.getElementById('QPREV').textContent=waT();}
 function waT(){const n=document.getElementById('QCN')?.value||'הלקוח',ev=document.getElementById('QET')?.value||'האירוע',ed=document.getElementById('QED')?.value||'',ds=ed?new Date(ed).toLocaleDateString('he-IL'):'',t=qTotals(),dr=document.getElementById('QDRTXT')?.value||`הנחה ${t.dp}%`,lines=qIt.filter(i=>i.name).map(i=>`• ${i.name} × ${i.qty} — ${i.price}₪`).join('\n')||'• (לא נבחרו פריטים)',trvl=t.trv>0?`\n• נסיעות — ${t.trv}₪`:'',disc=t.dp>0?`\n🎁 ${dr}: -${t.da}₪`:'';return `שלום ${n} 😊🎈\n\nהצעת מחיר עבור ${ev}${ds?' — '+ds:''}:\n\n${lines}${trvl}${disc}\n\n*סה"כ לתשלום: ${t.grand}₪*\n\nתשלום ב-Bit / Paybox / צ'ק\n📞 050-5918734 | הושעיה אמן בלונים`;}
-function qcopy(){navigator.clipboard.writeText(waT()).then(()=>{document.getElementById('QCPB').textContent='✅ הועתק!';setTimeout(()=>document.getElementById('QCPB').textContent='📋 העתק לוואטסאפ',2000);});}
-function qwa(){const phone=(document.getElementById('QCP')?.value||'').replace(/\D/g,'').replace(/^0/,'');window.open(phone?`https://wa.me/972${phone}?text=${encodeURIComponent(waT())}`:`https://wa.me/?text=${encodeURIComponent(waT())}`,'_blank');}
+function qcopy(){saveQuote(false);navigator.clipboard.writeText(waT()).then(()=>{document.getElementById('QCPB').textContent='✅ הועתק!';setTimeout(()=>document.getElementById('QCPB').textContent='📋 העתק לוואטסאפ',2000);});}
+function qwa(){saveQuote(false);const phone=(document.getElementById('QCP')?.value||'').replace(/\D/g,'').replace(/^0/,'');window.open(phone?`https://wa.me/972${phone}?text=${encodeURIComponent(waT())}`:`https://wa.me/?text=${encodeURIComponent(waT())}`,'_blank');}
 async function qsend(){const n=document.getElementById('QCN')?.value||'',t=qTotals(),{trv,dp,grand}=t;if(!n||grand<=0){sQSt('er','⚠️ נא למלא שם לקוח וסכום');return;}sQSt('ld','⏳ שולח...');
   try{const tr=await fetch('https://api.greeninvoice.co.il/api/v1/account/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:MID,secret:MSC})});const {token}=await tr.json();
     const inc=qIt.filter(i=>i.name&&i.price>0).map(i=>({description:i.name,quantity:i.qty,price:pfr(i.name),vatType:0}));if(trv>0)inc.push({description:'נסיעות',quantity:1,price:trv,vatType:0});
     const pl={description:document.getElementById('QET')?.value||'שירותי בלונים',type:320,lang:'he',currency:'ILS',vatType:0,discount:dp||0,client:{name:n,phones:document.getElementById('QCP')?.value?[{phone:document.getElementById('QCP').value}]:[],add:true},income:inc,remarks:"תשלום ב-Bit / Paybox / צ'ק\nהושעיה אמן בלונים | 050-5918734"};
     const dr=await fetch('https://api.greeninvoice.co.il/api/v1/documents',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify(pl)});const doc=await dr.json();
-    if(doc.id){sQSt('ok',`✅ נשלח! מסמך: ${doc.number||doc.id}`);qHist=[{name:n,total:grand,evt:document.getElementById('QET')?.value||'',date:new Date().toLocaleDateString('he-IL')},...qHist].slice(0,50);}else sQSt('er',`❌ ${doc.message||JSON.stringify(doc)}`);}
+    if(doc.id){sQSt('ok',`✅ נשלח! מסמך: ${doc.number||doc.id}`);saveQuote(false);}else sQSt('er',`❌ ${doc.message||JSON.stringify(doc)}`);}
   catch(e){sQSt('er',`❌ ${e.message}`);}}
 function sQSt(type,msg){const el=document.getElementById('QIST');el.className=`st ${type}`;el.textContent=msg;el.style.display='block';}
 async function qparse(){
@@ -1568,8 +1579,119 @@ function rParsed(p){document.getElementById('QPD').style.display='block';let h='
 function qapply(){if(!pQ)return;if(pQ.clientName)document.getElementById('QCN').value=pQ.clientName;if(pQ.clientPhone)document.getElementById('QCP').value=pQ.clientPhone;if(pQ.eventType)document.getElementById('QET').value=pQ.eventType;if(validDate(pQ.eventDate))document.getElementById('QED').value=pQ.eventDate;if(pQ.distanceKm)document.getElementById('QDIST').value=pQ.distanceKm;qIt=[];document.getElementById('QITEMS').innerHTML='';pQ.items.forEach(it=>{qIt.push(it);qAddRow(it);});
   // חייב לרוץ אחרי שהפריטים נכנסו: setQLoc מתמחר אותם מחדש לפי מצב התושב
   setQLoc(pQ.isLocal);
+  curQuoteId=null;
   sqt(0);qcalc();}
-function rHist(){const el=document.getElementById('QHIST');if(!qHist.length){el.innerHTML='<div style="color:var(--muted);text-align:center;padding:16px;font-size:12px">אין היסטוריה עדיין</div>';return;}el.innerHTML=qHist.map(h=>`<div style="background:var(--surface);border-radius:8px;padding:9px;margin-bottom:6px;border:1px solid var(--border)"><div style="display:flex;justify-content:space-between"><b>${h.name}</b><span style="color:var(--gold);font-weight:700">${h.total}₪</span></div><div style="color:var(--muted);font-size:10px;margin-top:2px">${h.evt} · ${h.date}</div></div>`).join('');}
+// ── תיעוד הצעות מחיר (Supabase, טבלה inventory.quotes) ──
+// למה בשרת: זה תיעוד עסקי. localStorage נמחק עם ניקוי דפדפן ולא עובר מכשיר.
+const HIST_PERIODS=[['30','החודש'],['90','3 חודשים'],['365','שנה'],['all','הכל']];
+function isHelium(n){return String(n||'').includes('הליום');}
+function qsSt(t,m){const el=document.getElementById('QSVST');if(!el)return;el.className=`st ${t}`;el.textContent=m;el.style.display='block';}
+function quoteRow(){
+  const t=qTotals();
+  const d=document.getElementById('QED')?.value||'';
+  return{
+    client_name:document.getElementById('QCN')?.value||'',
+    client_phone:document.getElementById('QCP')?.value||'',
+    event_type:document.getElementById('QET')?.value||'',
+    event_date:validDate(d)?d:null,
+    is_local:!!qLoc,distance_km:t.dist,travel:t.trv,
+    discount_pct:t.dp,discount_amt:t.da,items_total:t.tot,total:t.grand,
+    items:qIt.filter(i=>i.name).map(i=>({name:i.name,qty:i.qty||1,price:i.price||0})),
+    created_by:APP_SOURCE
+  };
+}
+// manual=true → הודעה גם בהצלחה. אוטומטי → שקט, כדי לא להפריע בזמן שליחה.
+async function saveQuote(manual){
+  const c=sbClient();
+  if(!c||!invUser){if(manual)qsSt('er','יש להתחבר קודם: טאב "מלאי" ← קישור למייל');return null;}
+  const row=quoteRow();
+  if(!row.items.length){if(manual)qsSt('er','אין פריטים בהצעה');return null;}
+  if(manual)qsSt('ld','⏳ שומר…');
+  try{
+    if(curQuoteId){
+      const {error}=await c.from('quotes').update({...row,updated_at:new Date().toISOString()}).eq('id',curQuoteId);
+      if(error)throw error;
+    }else{
+      const {data,error}=await c.from('quotes').insert(row).select('id').single();
+      if(error)throw error;
+      curQuoteId=data.id;
+    }
+    if(manual)qsSt('ok',`✅ נשמר לתיעוד (#${curQuoteId})`);
+    return curQuoteId;
+  }catch(e){
+    if(isAuthError(e)){if(manual)qsSt('er','פג תוקף החיבור — התחבר מחדש בטאב המלאי');return null;}
+    if(manual)qsSt('er','❌ '+(e.message||e));
+    return null;
+  }
+}
+function newQuote(){
+  curQuoteId=null;pQ=null;qIt=[];
+  ['QCN','QCP','QET','QED','QDIST','QDRTXT'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  document.getElementById('QITEMS').innerHTML='<div style="color:var(--muted);font-size:11px;text-align:center;padding:5px">לחץ + להוסיף</div>';
+  setQLoc(false);
+  const d=document.getElementById('QPD');if(d)d.style.display='none';
+  qsSt('ok','הצעה חדשה — הקודמת נשמרה בתיעוד');
+}
+async function loadQuotes(){
+  const el=document.getElementById('QHIST');
+  // הצ'יפים נבנים תמיד ולא רק אחרי טעינה מוצלחת: בלי זה, מחובר או לא,
+  // בורר התקופה פשוט לא קיים כשהטעינה נעצרת מוקדם
+  renderHistChips();
+  const c=sbClient();
+  if(!c||!invUser){el.innerHTML='<div style="color:var(--muted);text-align:center;padding:16px;font-size:12px">יש להתחבר בטאב המלאי כדי לראות את התיעוד</div>';document.getElementById('HSUM').innerHTML='';return;}
+  try{
+    const {data,error}=await c.from('quotes').select('*').order('created_at',{ascending:false}).limit(500);
+    if(error)throw error;
+    qHist=data||[];
+  }catch(e){
+    if(isAuthError(e)){showInvExpired();return;}
+    el.innerHTML=`<div style="color:var(--pink);text-align:center;padding:16px;font-size:12px">❌ ${escHtml(e.message||String(e))}</div>`;return;
+  }
+  renderHist();
+}
+function histFiltered(){
+  if(histPeriod==='all')return qHist;
+  const from=Date.now()-(+histPeriod)*864e5;
+  return qHist.filter(q=>new Date(q.created_at).getTime()>=from);
+}
+function renderHistChips(){
+  const w=document.getElementById('HPER');
+  w.innerHTML=HIST_PERIODS.map(([k,l])=>`<button class="chip${histPeriod===k?' on':''}" data-hp="${k}">${l}</button>`).join('');
+  if(!w._bound){w._bound=1;w.addEventListener('click',e=>{const b=e.target.closest('[data-hp]');if(!b)return;histPeriod=b.dataset.hp;renderHist();});}
+}
+function renderHist(){
+  renderHistChips();
+  const rows=histFiltered();
+  const sum=document.getElementById('HSUM'),el=document.getElementById('QHIST');
+  const money=rows.reduce((n,q)=>n+(q.total||0),0);
+  const byItem={};let hel=0,units=0;
+  rows.forEach(q=>(q.items||[]).forEach(i=>{
+    const n=i.qty||0;units+=n;byItem[i.name]=(byItem[i.name]||0)+n;
+    if(isHelium(i.name))hel+=n;
+  }));
+  const top=Object.entries(byItem).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const box=(t,v,c)=>`<div style="flex:1;min-width:88px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:8px 9px"><div style="font-size:9px;color:var(--muted)">${t}</div><div style="font-size:16px;font-weight:900;color:${c}">${v}</div></div>`;
+  sum.innerHTML=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+      ${box('הצעות',rows.length,'var(--text)')}
+      ${box('סה"כ',money.toLocaleString('he-IL')+'₪','var(--gold)')}
+      ${box('בלוני הליום',hel,'var(--bl)')}
+      ${box('סה"כ פריטים',units,'var(--text)')}
+    </div>`
+    +(top.length?`<div style="font-size:10px;color:var(--muted);margin-bottom:4px">הכי נמכר בתקופה</div>`
+      +top.map(([n,q])=>`<div style="display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:1px solid var(--border)"><span>${escHtml(n)}</span><b>${q}</b></div>`).join(''):'');
+  if(!rows.length){el.innerHTML='<div style="color:var(--muted);text-align:center;padding:16px;font-size:12px">אין הצעות בתקופה הזו</div>';return;}
+  el.style.color='';el.style.textAlign='';el.style.padding='';
+  el.innerHTML=rows.map(q=>{
+    const items=(q.items||[]).map(i=>`${escHtml(i.name)} ×${i.qty}`).join(' · ');
+    const dt=new Date(q.created_at).toLocaleDateString('he-IL');
+    const ed=q.event_date?new Date(q.event_date).toLocaleDateString('he-IL'):'';
+    return `<div style="background:var(--surface);border-radius:9px;padding:9px 11px;margin-bottom:6px;border:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;gap:8px"><b style="font-size:12px">${escHtml(q.client_name||'ללא שם')}</b><span style="color:var(--gold);font-weight:700;white-space:nowrap">${(q.total||0).toLocaleString('he-IL')}₪</span></div>
+      <div style="color:var(--muted);font-size:10px;margin-top:2px">${escHtml(q.event_type||'')}${ed?' · אירוע '+ed:''} · נשמר ${dt}${q.is_local?' · תושב':''}</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:4px;line-height:1.6">${items}</div>
+    </div>`;
+  }).join('');
+}
 
 // ── DRIVE ──
 
