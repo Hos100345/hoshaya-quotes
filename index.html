@@ -1600,12 +1600,18 @@ function quoteRow(){
     created_by:APP_SOURCE
   };
 }
-// manual=true → הודעה גם בהצלחה. אוטומטי → שקט, כדי לא להפריע בזמן שליחה.
+// כישלון שמירה נשמע תמיד, גם בשמירה אוטומטית: הצעה שלא נשמרה בשקט היא בדיוק
+// מה שהתיעוד אמור למנוע. הצלחה אוטומטית נרשמת בשורת המצב ובלי חלונית קופצת.
+function saveFail(msg,manual){qsSt('er','❌ '+msg);toast('❌ ההצעה לא נשמרה לתיעוד — '+msg,1);}
 async function saveQuote(manual){
   const c=sbClient();
-  if(!c||!invUser){if(manual)qsSt('er','יש להתחבר קודם: טאב "מלאי" ← קישור למייל');return null;}
+  if(!c||!invUser){saveFail('יש להתחבר: טאב "מלאי" ← קישור למייל',manual);return null;}
   const row=quoteRow();
-  if(!row.items.length){if(manual)qsSt('er','אין פריטים בהצעה');return null;}
+  if(!row.items.length){
+    // הצעה ריקה בשמירה אוטומטית אינה תקלה — פשוט אין עדיין מה לשמור
+    if(manual)qsSt('er','אין פריטים בהצעה');
+    return null;
+  }
   if(manual)qsSt('ld','⏳ שומר…');
   try{
     if(curQuoteId){
@@ -1616,11 +1622,10 @@ async function saveQuote(manual){
       if(error)throw error;
       curQuoteId=data.id;
     }
-    if(manual)qsSt('ok',`✅ נשמר לתיעוד (#${curQuoteId})`);
+    qsSt('ok',manual?`✅ נשמר לתיעוד (#${curQuoteId})`:`✅ נשמר אוטומטית לתיעוד (#${curQuoteId})`);
     return curQuoteId;
   }catch(e){
-    if(isAuthError(e)){if(manual)qsSt('er','פג תוקף החיבור — התחבר מחדש בטאב המלאי');return null;}
-    if(manual)qsSt('er','❌ '+(e.message||e));
+    saveFail(isAuthError(e)?'פג תוקף החיבור — התחבר מחדש בטאב המלאי':(e.message||String(e)),manual);
     return null;
   }
 }
