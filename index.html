@@ -314,6 +314,9 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
     <div class="card">
       <div class="ct">דרישת תשלום — Morning</div>
       <div id="QIST" class="st" style="display:none"></div>
+      <input class="inp" id="QCLQ" placeholder="🔎 חפש לקוח רשום ב-Morning (שם או טלפון)" oninput="clSearchInp(this.value)" style="margin-bottom:6px">
+      <div id="QCLSEL" style="display:none;font-size:11px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 9px;margin-bottom:6px"></div>
+      <div id="QCLR" style="margin-bottom:6px"></div>
       <button class="btn pu" onclick="qsend()">🧾 שלח דרישת תשלום</button>
     </div>
     <div class="card">
@@ -372,6 +375,7 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
       <div class="ct">סיכום</div>
       <div id="HSUM"></div>
     </div>
+    <div id="UNDOBAR" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px 11px;margin-bottom:8px;font-size:11px"></div>
     <div class="card">
       <div class="ct">הצעות</div>
       <div id="QHIST" style="color:var(--muted);text-align:center;padding:18px;font-size:12px">טוען…</div>
@@ -1545,10 +1549,64 @@ function qcalc(){
 function waT(){const n=document.getElementById('QCN')?.value||'הלקוח',ev=document.getElementById('QET')?.value||'האירוע',ed=document.getElementById('QED')?.value||'',ds=ed?new Date(ed).toLocaleDateString('he-IL'):'',t=qTotals(),dr=document.getElementById('QDRTXT')?.value||`הנחה ${t.dp}%`,lines=qIt.filter(i=>i.name).map(i=>`• ${i.name} × ${i.qty} — ${i.price}₪`).join('\n')||'• (לא נבחרו פריטים)',trvl=t.trv>0?`\n• נסיעות — ${t.trv}₪`:'',disc=t.dp>0?`\n🎁 ${dr}: -${t.da}₪`:'';return `שלום ${n} 😊🎈\n\nהצעת מחיר עבור ${ev}${ds?' — '+ds:''}:\n\n${lines}${trvl}${disc}\n\n*סה"כ לתשלום: ${t.grand}₪*\n\nתשלום ב-Bit / Paybox / צ'ק\n📞 050-5918734 | הושעיה אמן בלונים`;}
 function qcopy(){saveQuote(false);navigator.clipboard.writeText(waT()).then(()=>{document.getElementById('QCPB').textContent='✅ הועתק!';setTimeout(()=>document.getElementById('QCPB').textContent='📋 העתק לוואטסאפ',2000);});}
 function qwa(){saveQuote(false);const phone=(document.getElementById('QCP')?.value||'').replace(/\D/g,'').replace(/^0/,'');window.open(phone?`https://wa.me/972${phone}?text=${encodeURIComponent(waT())}`:`https://wa.me/?text=${encodeURIComponent(waT())}`,'_blank');}
+// ── לקוחות Morning ──
+// אומת מול ה-API בלי להשתמש במפתח: POST /api/v1/clients/search קיים (401 ולא
+// 404), ו-preflight מחזיר access-control-allow-origin עבור www.hoshaya.co.il,
+// כלומר הדפדפן ירשה את הקריאה מהאתר.
+let mToken=null,mTokenAt=0,clTimer=null,clPicked=null;
+async function morningToken(){
+  // הטוקן תקף כשעה; שומרים 50 דקות כדי לא ליצור טוקן חדש בכל חיפוש
+  if(mToken&&Date.now()-mTokenAt<50*60*1000)return mToken;
+  const r=await fetch('https://api.greeninvoice.co.il/api/v1/account/token',
+    {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:MID,secret:MSC})});
+  const d=await r.json().catch(()=>null);
+  if(!d||!d.token)throw new Error(d&&d.errorMessage?d.errorMessage:`התחברות ל-Morning נכשלה (${r.status})`);
+  mToken=d.token;mTokenAt=Date.now();return mToken;
+}
+function clSearchInp(v){clearTimeout(clTimer);const q=String(v||'').trim();
+  if(q.length<2){document.getElementById('QCLR').innerHTML='';return;}
+  clTimer=setTimeout(()=>clSearch(q),450);}
+async function clSearch(q){
+  const box=document.getElementById('QCLR');
+  box.innerHTML='<div style="font-size:11px;color:var(--muted);padding:5px">⏳ מחפש…</div>';
+  try{
+    const token=await morningToken();
+    const r=await fetch('https://api.greeninvoice.co.il/api/v1/clients/search',{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
+      body:JSON.stringify({page:1,pageSize:15,search:q})});
+    const d=await r.json().catch(()=>null);
+    if(!r.ok)throw new Error(d&&d.errorMessage?d.errorMessage:`שגיאת שרת (${r.status})`);
+    // צורת התשובה לא מאומתת מול החשבון עצמו, אז מקבלים גם items, גם data וגם מערך חשוף
+    const list=Array.isArray(d)?d:(d&&(d.items||d.data))||[];
+    if(!list.length){box.innerHTML='<div style="font-size:11px;color:var(--muted);padding:5px">לא נמצא לקוח בשם הזה</div>';return;}
+    box.innerHTML=list.slice(0,8).map(c=>{
+      const phone=c.phone||(Array.isArray(c.phones)&&c.phones[0]&&(c.phones[0].phone||c.phones[0]))||'';
+      const mail=Array.isArray(c.emails)?c.emails[0]:(c.email||'');
+      return `<button class="pkrow" data-cl="${escHtml(JSON.stringify({id:c.id||'',name:c.name||'',phone:String(phone||'')}))}">
+        <span style="text-align:right;min-width:0">${escHtml(c.name||'ללא שם')}${(phone||mail)?`<br><span style="font-size:9px;color:var(--muted)">${escHtml(String(phone||mail))}</span>`:''}</span>
+        <span style="color:var(--bl);font-size:10px;white-space:nowrap">בחר</span></button>`;}).join('');
+    if(!box._bound){box._bound=1;box.addEventListener('click',e=>{const b=e.target.closest('[data-cl]');if(b)pickClient(JSON.parse(b.dataset.cl));});}
+  }catch(e){box.innerHTML=`<div style="font-size:11px;color:var(--pink);padding:5px">❌ ${escHtml(e.message||String(e))}</div>`;}
+}
+function pickClient(c){
+  clPicked=c;
+  if(c.name)document.getElementById('QCN').value=c.name;
+  if(c.phone)document.getElementById('QCP').value=c.phone;
+  document.getElementById('QCLQ').value='';
+  document.getElementById('QCLR').innerHTML='';
+  const sel=document.getElementById('QCLSEL');
+  sel.style.display='block';
+  sel.innerHTML=`🔗 לקוח מקושר: <b>${escHtml(c.name||'')}</b>${c.phone?' · '+escHtml(c.phone):''} <button onclick="clearClient()" style="background:none;border:none;color:var(--pink);cursor:pointer;font-size:13px">✕</button>`;
+  qcalc();
+}
+function clearClient(){clPicked=null;const sel=document.getElementById('QCLSEL');sel.style.display='none';sel.innerHTML='';}
+
 async function qsend(){const n=document.getElementById('QCN')?.value||'',t=qTotals(),{trv,dp,grand}=t;if(!n||grand<=0){sQSt('er','⚠️ נא למלא שם לקוח וסכום');return;}sQSt('ld','⏳ שולח...');
-  try{const tr=await fetch('https://api.greeninvoice.co.il/api/v1/account/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:MID,secret:MSC})});const {token}=await tr.json();
+  try{const token=await morningToken();
     const inc=qIt.filter(i=>i.name&&i.price>0).map(i=>({description:i.name,quantity:i.qty,price:pfr(i.name),vatType:0}));if(trv>0)inc.push({description:'נסיעות',quantity:1,price:trv,vatType:0});
-    const pl={description:document.getElementById('QET')?.value||'שירותי בלונים',type:320,lang:'he',currency:'ILS',vatType:0,discount:dp||0,client:{name:n,phones:document.getElementById('QCP')?.value?[{phone:document.getElementById('QCP').value}]:[],add:true},income:inc,remarks:"תשלום ב-Bit / Paybox / צ'ק\nהושעיה אמן בלונים | 050-5918734"};
+    const pl={description:document.getElementById('QET')?.value||'שירותי בלונים',type:320,lang:'he',currency:'ILS',vatType:0,discount:dp||0,client:clPicked&&clPicked.id
+      ? {id:clPicked.id,name:n,phones:document.getElementById('QCP')?.value?[{phone:document.getElementById('QCP').value}]:[]}
+      : {name:n,phones:document.getElementById('QCP')?.value?[{phone:document.getElementById('QCP').value}]:[],add:true},income:inc,remarks:"תשלום ב-Bit / Paybox / צ'ק\nהושעיה אמן בלונים | 050-5918734"};
     const dr=await fetch('https://api.greeninvoice.co.il/api/v1/documents',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify(pl)});const doc=await dr.json();
     if(doc.id){sQSt('ok',`✅ נשלח! מסמך: ${doc.number||doc.id}`);saveQuote(false);}else sQSt('er',`❌ ${doc.message||JSON.stringify(doc)}`);}
   catch(e){sQSt('er',`❌ ${e.message}`);}}
@@ -1645,7 +1703,7 @@ async function loadQuotes(){
   const c=sbClient();
   if(!c||!invUser){el.innerHTML='<div style="color:var(--muted);text-align:center;padding:16px;font-size:12px">יש להתחבר בטאב המלאי כדי לראות את התיעוד</div>';document.getElementById('HSUM').innerHTML='';return;}
   try{
-    const {data,error}=await c.from('quotes').select('*').order('created_at',{ascending:false}).limit(500);
+    const {data,error}=await c.from('quotes').select('*').is('deleted_at',null).order('created_at',{ascending:false}).limit(500);
     if(error)throw error;
     qHist=data||[];
   }catch(e){
@@ -1653,6 +1711,30 @@ async function loadQuotes(){
     el.innerHTML=`<div style="color:var(--pink);text-align:center;padding:16px;font-size:12px">❌ ${escHtml(e.message||String(e))}</div>`;return;
   }
   renderHist();
+}
+// מחיקה רכה: השורה נשארת ב-DB עם deleted_at, כך שאפשר להחזיר אותה. תיעוד עסקי
+// שנמחק בטעות בלחיצה אחת בנייד הוא נזק אמיתי.
+let delUndo=null,delTimer=null;
+async function delQuote(id){
+  const c=sbClient();if(!c)return;
+  const row=qHist.find(q=>q.id===id);if(!row)return;
+  const {error}=await c.from('quotes').update({deleted_at:new Date().toISOString()}).eq('id',id);
+  if(error){if(isAuthError(error)){showInvExpired();return;}toast('❌ '+error.message,1);return;}
+  qHist=qHist.filter(q=>q.id!==id);renderHist();
+  delUndo=row;
+  const bar=document.getElementById('UNDOBAR');
+  bar.innerHTML=`הצעה של ${escHtml(row.client_name||'ללא שם')} נמחקה <button onclick="undoDel()" style="background:var(--bl);border:none;color:#fff;border-radius:7px;padding:4px 10px;margin-right:8px;font-family:'Heebo',sans-serif;font-size:11px;font-weight:700;cursor:pointer">בטל ↩</button>`;
+  bar.style.display='block';
+  clearTimeout(delTimer);delTimer=setTimeout(()=>{bar.style.display='none';delUndo=null;},10000);
+}
+async function undoDel(){
+  if(!delUndo)return;
+  const c=sbClient();if(!c)return;
+  const {error}=await c.from('quotes').update({deleted_at:null}).eq('id',delUndo.id);
+  document.getElementById('UNDOBAR').style.display='none';
+  if(error){toast('❌ השחזור נכשל: '+error.message,1);return;}
+  delUndo=null;clearTimeout(delTimer);
+  await loadQuotes();toast('↩ ההצעה שוחזרה');
 }
 function histFiltered(){
   if(histPeriod==='all')return qHist;
@@ -1694,6 +1776,7 @@ function renderHist(){
       <div style="display:flex;justify-content:space-between;gap:8px"><b style="font-size:12px">${escHtml(q.client_name||'ללא שם')}</b><span style="color:var(--gold);font-weight:700;white-space:nowrap">${(q.total||0).toLocaleString('he-IL')}₪</span></div>
       <div style="color:var(--muted);font-size:10px;margin-top:2px">${escHtml(q.event_type||'')}${ed?' · אירוע '+ed:''} · נשמר ${dt}${q.is_local?' · תושב':''}</div>
       <div style="font-size:10px;color:var(--muted);margin-top:4px;line-height:1.6">${items}</div>
+      <div style="text-align:left;margin-top:4px"><button onclick="delQuote(${q.id})" style="background:none;border:none;color:var(--pink);cursor:pointer;font-size:12px;padding:3px 6px">🗑 מחק</button></div>
     </div>`;
   }).join('');
 }
