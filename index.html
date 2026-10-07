@@ -483,6 +483,7 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
     <button class="btn gr" style="flex:1;margin-bottom:0" onclick="copyMissing()">📋 העתק חוסרים</button>
     <button class="btn bl" style="flex:1;margin-bottom:0" onclick="openImp()">📥 ייבוא</button>
   </div>
+  <button class="btn gray" style="margin-top:7px" onclick="openSeries()">🔢 סדרת ספרות חדשה (0–9)</button>
 
   <div style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:10px;color:var(--muted)">
     <span>מחובר: <span id="INVWHO"></span></span>
@@ -531,6 +532,24 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
     <input class="inp" id="QPKQ" placeholder="חיפוש — שם פריט או קטגוריה" oninput="pickSearch(this.value)" style="margin-bottom:8px">
     <div id="QPKL" style="overflow-y:auto;flex:1;min-height:0;margin-bottom:10px"></div>
     <button class="mbt s" onclick="closePick()">סגור</button>
+  </div>
+</div>
+
+<!-- New digit series -->
+<div class="mov" id="SERM" onclick="closeSerOut(event)">
+  <div class="msh">
+    <div class="mhdl"></div>
+    <div class="mttl">🔢 סדרת ספרות חדשה</div>
+    <div id="SERST" class="st" style="display:none"></div>
+    <label class="lbl">גודל (אינץ')</label>
+    <input class="inp" id="SERSZ" inputmode="numeric" placeholder="34" oninput="serPrev()" style="margin-bottom:8px;margin-top:3px">
+    <label class="lbl">צבע</label>
+    <input class="inp" id="SERCOL" placeholder="למשל: ירוק מטאלי" oninput="serPrev()" style="margin-bottom:8px;margin-top:3px">
+    <label class="lbl">כמות מינימום (התראת חוסר)</label>
+    <input class="inp" id="SERMIN" type="number" min="0" value="2" style="margin-bottom:8px;margin-top:3px">
+    <div id="SERPREV" style="font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:12px">מלא גודל וצבע</div>
+    <button class="mbt p" id="SERBTN" onclick="createSeries()">צור 10 פריטים</button>
+    <button class="mbt s" onclick="closeSer()">ביטול</button>
   </div>
 </div>
 
@@ -1209,23 +1228,38 @@ const NO_SIZE='ללא גודל';
 // הלוח נבנה מהפריטים שבאמת מוצגים כרגע (קטגוריה + גודל), לא מרשימה קבועה:
 // לוחצים על "מיילר" ואז 32", והלוח מראה בדיוק את הצבעים, הספרות והצורות
 // שקיימות בגודל הזה — במקום לנחש מה להקליד.
+// רשימת צבעים לשמות חופשיים בלבד ("בלון לטקס אדום"). סדרות ספרות לא זקוקות
+// לה — ראה invColorOf.
 const INV_COLORS=['רוז גולד','ורוד בהיר','ורוד כהה','כחול כהה','כחול בהיר','ירוק בהיר','ירוק כהה',
  'תכלת מט','זהב','כסף','נחושת','ברונזה','תכלת','כחול','לבן','שחור','אדום','ורוד','סגול','ירוק','צהוב',
  'כתום','חום','אפור','שקוף','שמנת','תורכיז','לילך','פוקסיה','מנטה','אפרסק'];
 // מילים שאינן מבדילות בין פריטים ולכן אין טעם להציע אותן
 const SUG_STOP=new Set(['בלון','בלונים','ספרה','ספרות','מיילר','מיילרים','אינץ','אינטש','עם','של','ללא','יח','יחידה']);
+// שם של סדרת ספרות בנוי תמיד כך: מיילר <גודל>" <צבע> ספרה <ספרה>.
+// לכן הצבע נגזר מהמבנה — כל צבע חדש עובד מיד, בלי לעדכן שום רשימה בקוד.
+// רק לשמות שאינם בתבנית הזו נופלים לרשימת המילים.
+function invColorOf(name){
+  const t=String(name||'');
+  const m=t.match(/["'׳״]\s*(.+?)\s+ספרה\s*\d/);
+  if(m&&m[1].trim())return m[1].trim();
+  for(const c of INV_COLORS)if(t.includes(c))return c;
+  return '';
+}
 function sugGroups(items){
   const colors={},digits={},words={};
   items.forEach(i=>{
     const n=String(i.name||'');
-    for(const c of INV_COLORS)if(n.includes(c)){colors[c]=(colors[c]||0)+1;break;}
+    const col=invColorOf(n);
+    if(col)colors[col]=(colors[col]||0)+1;
     const m=n.match(/ספרה\s*(\d)/);
     if(m)digits[m[1]]=(digits[m[1]]||0)+1;
+    // מילות הצבע של אותו פריט לא חוזרות בקבוצת "עוד"
+    const colWords=new Set(col?col.split(/\s+/):[]);
     n.replace(/["'׳״]/g,' ').split(/[\s,/()]+/).forEach(w=>{
       w=w.trim();
-      if(!w||w.length<2||SUG_STOP.has(w))return;
-      if(/\d/.test(w))return;                       // גדלים וספרות מטופלים בנפרד
-      if(INV_COLORS.some(c=>c===w||c.split(' ').includes(w)))return; // צבעים מטופלים בנפרד
+      if(!w||w.length<2||SUG_STOP.has(w)||colWords.has(w))return;
+      if(/\d/.test(w))return;                         // גדלים וספרות מטופלים בנפרד
+      if(INV_COLORS.some(c=>c===w||c.split(' ').includes(w)))return;
       words[w]=(words[w]||0)+1;
     });
   });
@@ -1329,6 +1363,61 @@ function invItemHTML(i){
     </div>
   </div>`;}
 
+// יצירת סדרת ספרות שלמה: הצבע נכתב פעם אחת ונוצרים 0–9 בבת אחת, בלי לבקש
+// ממני להוסיף כל צבע חדש. השם נבנה בדיוק בתבנית שהזיהוי מצפה לה.
+function serName(sz,col,d){return `מיילר ${sz}" ${col} ספרה ${d}`;}
+function openSeries(){
+  document.getElementById('SERSZ').value='';
+  document.getElementById('SERCOL').value='';
+  document.getElementById('SERMIN').value='2';
+  const st=document.getElementById('SERST');st.style.display='none';
+  serPrev();
+  document.getElementById('SERM').classList.add('open');
+}
+function closeSer(){document.getElementById('SERM').classList.remove('open');}
+function closeSerOut(e){if(e.target.id==='SERM')closeSer();}
+function serSt(t,m){const el=document.getElementById('SERST');el.className=`st ${t}`;el.textContent=m;el.style.display='block';}
+function serVals(){
+  return{sz:(document.getElementById('SERSZ').value||'').replace(/[^0-9]/g,''),
+         col:(document.getElementById('SERCOL').value||'').trim(),
+         min:Math.max(0,parseInt(document.getElementById('SERMIN').value,10)||0)};
+}
+function serPrev(){
+  const {sz,col}=serVals();
+  const box=document.getElementById('SERPREV');
+  if(!sz||!col){box.innerHTML='מלא גודל וצבע';return;}
+  const exist=invItems.filter(i=>[...Array(10).keys()].some(d=>i.name===serName(sz,col,d))).length;
+  box.innerHTML=`ייווצרו: <b>${escHtml(serName(sz,col,0))}</b> … <b>${escHtml(serName(sz,col,9))}</b>`
+    +(exist?`<br><span style="color:var(--gold)">${exist} מתוכם כבר קיימים ולא ייווצרו שוב</span>`:'');
+}
+async function createSeries(){
+  const {sz,col,min}=serVals();
+  if(!sz||!col){serSt('er','⚠️ נא למלא גודל וצבע');return;}
+  const c=sbClient();
+  if(!c||!invUser){serSt('er','יש להתחבר קודם');return;}
+  const have=new Set(invItems.map(i=>i.name));
+  const rows=[...Array(10).keys()].map(d=>serName(sz,col,d)).filter(n=>!have.has(n))
+    .map(n=>({name:n,category:'מיילר',qty:0,min_qty:min,updated_by:APP_SOURCE}));
+  if(!rows.length){serSt('er','כל עשר הספרות כבר קיימות');return;}
+  const btn=document.getElementById('SERBTN');
+  btn.disabled=true;btn.textContent='⏳ יוצר…';
+  const {error}=await c.from('items').insert(rows);
+  btn.disabled=false;btn.textContent='צור 10 פריטים';
+  if(error){
+    if(isAuthError(error)){closeSer();showInvExpired();return;}
+    serSt('er','❌ '+error.message);return;
+  }
+  closeSer();
+  await loadInv();
+  // קופצים ישר לסדרה החדשה כדי שאפשר יהיה לספור אותה מיד
+  invCat='מיילר';invSize=sz+'"';invColorJump(col);
+  toast(`✅ נוצרו ${rows.length} פריטים — ${sz}" ${col}`);
+}
+function invColorJump(col){
+  invQ=col;const q=document.getElementById('INVQ');if(q)q.value=col;
+  document.querySelectorAll('#INVFSC .chip').forEach(x=>x.classList.toggle('on',x.textContent.includes('מיילר')));
+  hideSug();renderInv();
+}
 function openAddInv(){document.getElementById('INVMID').value='';document.getElementById('INVMTTL').textContent='➕ הוסף פריט חדש';document.getElementById('INVMNAME').value='';document.getElementById('INVMCAT').value='לטקס';document.getElementById('INVMQTY').value='0';document.getElementById('INVMMIN').value='10';document.getElementById('INVM').classList.add('open');}
 function openEditInv(id){const i=invItems.find(x=>x.id===id);if(!i)return;document.getElementById('INVMID').value=id;document.getElementById('INVMTTL').textContent='✏️ ערוך פריט';document.getElementById('INVMNAME').value=i.name;document.getElementById('INVMCAT').value=i.cat;document.getElementById('INVMQTY').value=i.qty;document.getElementById('INVMMIN').value=i.min;document.getElementById('INVM').classList.add('open');}
 async function saveInvItem(){
