@@ -542,9 +542,11 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
     <div class="mttl">🔢 סדרת ספרות חדשה</div>
     <div id="SERST" class="st" style="display:none"></div>
     <label class="lbl">גודל (אינץ')</label>
-    <input class="inp" id="SERSZ" inputmode="numeric" placeholder="34" oninput="serPrev()" style="margin-bottom:8px;margin-top:3px">
+    <input class="inp" id="SERSZ" inputmode="numeric" placeholder="34" oninput="serPrev()" style="margin-bottom:5px;margin-top:3px">
+    <div class="fscr fwrap" id="SERSZS" style="margin-bottom:8px"></div>
     <label class="lbl">צבע</label>
-    <input class="inp" id="SERCOL" placeholder="למשל: ירוק מטאלי" oninput="serPrev()" style="margin-bottom:8px;margin-top:3px">
+    <input class="inp" id="SERCOL" placeholder="הקלד או בחר מהרשימה" oninput="serPrev()" style="margin-bottom:5px;margin-top:3px">
+    <div class="fscr fwrap" id="SERCOLS" style="margin-bottom:8px"></div>
     <label class="lbl">כמות מינימום (התראת חוסר)</label>
     <input class="inp" id="SERMIN" type="number" min="0" value="2" style="margin-bottom:8px;margin-top:3px">
     <div id="SERPREV" style="font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:12px">מלא גודל וצבע</div>
@@ -1382,10 +1384,45 @@ function serVals(){
          col:(document.getElementById('SERCOL').value||'').trim(),
          min:Math.max(0,parseInt(document.getElementById('SERMIN').value,10)||0)};
 }
+// ההשלמות נבנות מהמלאי הקיים: הגדלים שכבר יש, והצבעים שכבר שימשו — כך רוב
+// הסדרות נוצרות בשתי לחיצות בלי להקליד כלום, ושמות לא מתפצלים לשתי גרסאות
+// ("תכלת מט" מול "תכלת-מט") רק בגלל הקלדה שונה.
+function serSizes(){
+  const c={};
+  invItems.forEach(i=>{const k=(invSizeOf(i.name)||'').replace(/"/g,'');if(k)c[k]=(c[k]||0)+1;});
+  return Object.keys(c).sort((a,b)=>+a-+b).map(k=>({v:k,n:c[k]}));
+}
+function serColors(){
+  const c={};
+  invItems.forEach(i=>{const k=invColorOf(i.name);if(k)c[k]=(c[k]||0)+1;});
+  return Object.entries(c).sort((a,b)=>b[1]-a[1]).map(([v,n])=>({v,n}));
+}
+function serChips(){
+  const {sz,col}=serVals();
+  const szBox=document.getElementById('SERSZS'),colBox=document.getElementById('SERCOLS');
+  if(!szBox||!colBox)return;
+  const sizes=serSizes();
+  szBox.innerHTML=sizes.length
+    ?sizes.map(x=>`<button class="chip${x.v===sz?' on':''}" data-ssz="${escHtml(x.v)}">${escHtml(x.v)}" <span style="opacity:.55">${x.n}</span></button>`).join('')
+    :'';
+  // מסננים לפי מה שהוקלד, ומסמנים צבע שכבר קיים בגודל שנבחר
+  const typed=normName(col);
+  const taken=new Set(sz?invItems.filter(i=>(invSizeOf(i.name)||'').replace(/"/g,'')===sz).map(i=>invColorOf(i.name)).filter(Boolean):[]);
+  const list=serColors().filter(x=>!typed||normName(x.v).includes(typed));
+  colBox.innerHTML=list.length
+    ?list.map(x=>{const t=taken.has(x.v);
+      return `<button class="chip${x.v===col?' on':''}" data-scol="${escHtml(x.v)}"${t?' style="opacity:.45"':''}>${escHtml(x.v)}${t?' ✓':''}</button>`;}).join('')
+    :'<span style="font-size:10px;color:var(--muted)">צבע חדש — ייווצר כפי שהוקלד</span>';
+  if(!szBox._bound){szBox._bound=1;szBox.addEventListener('click',e=>{const b=e.target.closest('[data-ssz]');if(!b)return;
+    document.getElementById('SERSZ').value=b.dataset.ssz;serPrev();});}
+  if(!colBox._bound){colBox._bound=1;colBox.addEventListener('click',e=>{const b=e.target.closest('[data-scol]');if(!b)return;
+    document.getElementById('SERCOL').value=b.dataset.scol;serPrev();});}
+}
 function serPrev(){
+  serChips();
   const {sz,col}=serVals();
   const box=document.getElementById('SERPREV');
-  if(!sz||!col){box.innerHTML='מלא גודל וצבע';return;}
+  if(!sz||!col){box.innerHTML='בחר גודל וצבע — או הקלד חדשים';return;}
   const exist=invItems.filter(i=>[...Array(10).keys()].some(d=>i.name===serName(sz,col,d))).length;
   box.innerHTML=`ייווצרו: <b>${escHtml(serName(sz,col,0))}</b> … <b>${escHtml(serName(sz,col,9))}</b>`
     +(exist?`<br><span style="color:var(--gold)">${exist} מתוכם כבר קיימים ולא ייווצרו שוב</span>`:'');
