@@ -474,6 +474,8 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
   <input class="inp" id="INVQ" placeholder="🔎 חיפוש — לחץ כדי לראות ממה אפשר לבחור" oninput="invSearchInp(this.value)" onfocus="showSug()" style="margin-bottom:6px">
   <div id="INVSUG" style="display:none;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:9px 10px;margin-bottom:10px"></div>
 
+  <div id="INVUNDO" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:9px 11px;margin-bottom:8px;font-size:11px"></div>
+
   <!-- Items list -->
   <div id="INVLIST"></div>
 
@@ -519,6 +521,7 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
     <label class="lbl">כמות מינימום (התראת חוסר)</label>
     <input class="inp" id="INVMMIN" type="number" min="0" value="10" placeholder="10" style="margin-bottom:14px;margin-top:3px">
     <button class="mbt p" onclick="saveInvItem()">💾 שמור</button>
+    <button class="mbt s" id="INVMDEL" onclick="delInvItem()" style="display:none;color:var(--pink)">🗑 מחק פריט</button>
     <button class="mbt s" onclick="closeInvM()">ביטול</button>
   </div>
 </div>
@@ -1367,6 +1370,37 @@ function invItemHTML(i){
 
 // יצירת סדרת ספרות שלמה: הצבע נכתב פעם אחת ונוצרים 0–9 בבת אחת, בלי לבקש
 // ממני להוסיף כל צבע חדש. השם נבנה בדיוק בתבנית שהזיהוי מצפה לה.
+// מחיקת פריט מלאי. רכה: active=false, השורה נשארת ב-DB עם ההיסטוריה שלה
+// ב-movements. פריט שנמחק בטעות בנייד הוא ספירה שהלכה לאיבוד, ו-10 שניות של
+// "בטל" עולות הרבה פחות מלספור מחדש.
+let invUndo=null,invUndoT=null;
+async function delInvItem(){
+  const id=+document.getElementById('INVMID').value;
+  const it=invItems.find(x=>x.id===id);
+  if(!it)return;
+  const c=sbClient();if(!c)return;
+  const {error}=await c.from('items').update({active:false,updated_by:APP_SOURCE}).eq('id',id);
+  if(error){
+    if(isAuthError(error)){closeInvM();showInvExpired();return;}
+    toast('❌ '+error.message,1);return;
+  }
+  closeInvM();
+  invItems=invItems.filter(x=>x.id!==id);renderInv();
+  invUndo=it;
+  const bar=document.getElementById('INVUNDO');
+  bar.innerHTML=`נמחק: <b>${escHtml(it.name)}</b>${it.qty?` (${it.qty} במלאי)`:''} <button onclick="undoInvDel()" style="background:var(--bl);border:none;color:#fff;border-radius:7px;padding:4px 10px;margin-right:8px;font-family:'Heebo',sans-serif;font-size:11px;font-weight:700;cursor:pointer">בטל ↩</button>`;
+  bar.style.display='block';
+  clearTimeout(invUndoT);invUndoT=setTimeout(()=>{bar.style.display='none';invUndo=null;},10000);
+}
+async function undoInvDel(){
+  if(!invUndo)return;
+  const c=sbClient();if(!c)return;
+  const {error}=await c.from('items').update({active:true,updated_by:APP_SOURCE}).eq('id',invUndo.id);
+  document.getElementById('INVUNDO').style.display='none';
+  if(error){toast('❌ השחזור נכשל: '+error.message,1);return;}
+  invUndo=null;clearTimeout(invUndoT);
+  await loadInv();toast('↩ הפריט שוחזר');
+}
 function serName(sz,col,d){return `מיילר ${sz}" ${col} ספרה ${d}`;}
 function openSeries(){
   document.getElementById('SERSZ').value='';
@@ -1455,8 +1489,8 @@ function invColorJump(col){
   document.querySelectorAll('#INVFSC .chip').forEach(x=>x.classList.toggle('on',x.textContent.includes('מיילר')));
   hideSug();renderInv();
 }
-function openAddInv(){document.getElementById('INVMID').value='';document.getElementById('INVMTTL').textContent='➕ הוסף פריט חדש';document.getElementById('INVMNAME').value='';document.getElementById('INVMCAT').value='לטקס';document.getElementById('INVMQTY').value='0';document.getElementById('INVMMIN').value='10';document.getElementById('INVM').classList.add('open');}
-function openEditInv(id){const i=invItems.find(x=>x.id===id);if(!i)return;document.getElementById('INVMID').value=id;document.getElementById('INVMTTL').textContent='✏️ ערוך פריט';document.getElementById('INVMNAME').value=i.name;document.getElementById('INVMCAT').value=i.cat;document.getElementById('INVMQTY').value=i.qty;document.getElementById('INVMMIN').value=i.min;document.getElementById('INVM').classList.add('open');}
+function openAddInv(){document.getElementById('INVMDEL').style.display='none';document.getElementById('INVMID').value='';document.getElementById('INVMTTL').textContent='➕ הוסף פריט חדש';document.getElementById('INVMNAME').value='';document.getElementById('INVMCAT').value='לטקס';document.getElementById('INVMQTY').value='0';document.getElementById('INVMMIN').value='10';document.getElementById('INVM').classList.add('open');}
+function openEditInv(id){const i=invItems.find(x=>x.id===id);if(!i)return;document.getElementById('INVMDEL').style.display='';document.getElementById('INVMID').value=id;document.getElementById('INVMTTL').textContent='✏️ ערוך פריט';document.getElementById('INVMNAME').value=i.name;document.getElementById('INVMCAT').value=i.cat;document.getElementById('INVMQTY').value=i.qty;document.getElementById('INVMMIN').value=i.min;document.getElementById('INVM').classList.add('open');}
 async function saveInvItem(){
   const id=document.getElementById('INVMID').value;
   const name=document.getElementById('INVMNAME').value.trim();
