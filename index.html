@@ -487,6 +487,7 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
     <button class="btn bl" style="flex:1;margin-bottom:0" onclick="openImp()">📥 ייבוא</button>
   </div>
   <button class="btn gray" style="margin-top:7px" onclick="openSeries()">🔢 סדרת ספרות חדשה (0–9)</button>
+  <button class="btn gray" style="margin-top:7px" onclick="openRevert()">↩ אפס את 5 הדקות האחרונות</button>
 
   <div style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:10px;color:var(--muted)">
     <span>מחובר: <span id="INVWHO"></span></span>
@@ -536,6 +537,18 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
     <input class="inp" id="QPKQ" placeholder="חיפוש — שם פריט או קטגוריה" oninput="pickSearch(this.value)" style="margin-bottom:8px">
     <div id="QPKL" style="overflow-y:auto;flex:1;min-height:0;margin-bottom:10px"></div>
     <button class="mbt s" onclick="closePick()">סגור</button>
+  </div>
+</div>
+
+<!-- Revert last 5 minutes -->
+<div class="mov" id="REVM" onclick="closeRevOut(event)">
+  <div class="msh" style="max-height:86vh;display:flex;flex-direction:column">
+    <div class="mhdl"></div>
+    <div class="mttl">↩ איפוס 5 הדקות האחרונות</div>
+    <div id="REVST" class="st" style="display:none"></div>
+    <div id="REVLIST" style="overflow-y:auto;flex:1;min-height:0;margin-bottom:10px;font-size:12px"></div>
+    <button class="mbt p" id="REVBTN" onclick="doRevert()">אשר והחזר</button>
+    <button class="mbt s" onclick="closeRev()">ביטול</button>
   </div>
 </div>
 
@@ -1445,6 +1458,68 @@ async function undoInvDel(){
   if(error){toast('❌ השחזור נכשל: '+error.message,1);return;}
   invUndo=null;clearTimeout(invUndoT);
   await loadInv();toast('↩ הפריט שוחזר');
+}
+// איפוס 5 הדקות האחרונות — בדיוק מה שתוקן ידנית פעמיים: ספירה שנרשמה
+// לתוך הצבע הלא נכון. מחזיר כל פריט לערך שהיה לפני החלון, לא לאפס, כי
+// לחלק מהפריטים היו כמויות קודמות שלא נגעו בהן.
+const REVERT_SRC='ביטול 5 דקות';
+let revPlan=null;
+function revSt(t,m){const el=document.getElementById('REVST');el.className=`st ${t}`;el.textContent=m;el.style.display='block';}
+function closeRev(){document.getElementById('REVM').classList.remove('open');}
+function closeRevOut(e){if(e.target.id==='REVM')closeRev();}
+async function openRevert(){
+  const c=sbClient();
+  if(!c||!invUser){toast('יש להתחבר למלאי קודם',1);return;}
+  const box=document.getElementById('REVLIST');
+  box.innerHTML='<div style="color:var(--muted);padding:10px">⏳ קורא את יומן השינויים…</div>';
+  document.getElementById('REVST').style.display='none';
+  document.getElementById('REVM').classList.add('open');
+  const since=new Date(Date.now()-5*60*1000).toISOString();
+  const {data,error}=await c.from('movements').select('item_id,qty_before,source,created_at')
+    .gte('created_at',since).order('created_at',{ascending:true});
+  if(error){
+    if(isAuthError(error)){closeRev();showInvExpired();return;}
+    box.innerHTML=`<div style="color:var(--pink);padding:10px">❌ ${escHtml(error.message)}</div>`;return;
+  }
+  // הערך הראשון בחלון הוא היעד. שורות שנוצרו מאיפוס קודם מדולגות, אחרת
+  // לחיצה שנייה הייתה מבטלת את הביטול.
+  const first={};
+  (data||[]).forEach(m=>{if(m.source===REVERT_SRC)return;if(!(m.item_id in first))first[m.item_id]=m.qty_before;});
+  revPlan=Object.keys(first).map(id=>{
+    const it=invItems.find(x=>x.id===+id);
+    return it&&it.qty!==first[id]?{id:+id,name:it.name,from:it.qty,to:first[id]}:null;
+  }).filter(Boolean);
+  if(!revPlan.length){
+    box.innerHTML='<div style="color:var(--muted);padding:10px;text-align:center">לא נרשמו שינויים ב-5 הדקות האחרונות</div>';
+    document.getElementById('REVBTN').style.display='none';return;
+  }
+  document.getElementById('REVBTN').style.display='';
+  const total=revPlan.reduce((n,r)=>n+(r.from-r.to),0);
+  box.innerHTML=`<div style="color:var(--muted);font-size:11px;margin-bottom:7px">${revPlan.length} פריטים · ${total>0?'יורדו':'יוחזרו'} ${Math.abs(total)} יחידות</div>`
+    +revPlan.map(r=>`<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+        <span style="min-width:0">${colorDot(invColorOf(r.name))}${escHtml(r.name)}</span>
+        <span style="white-space:nowrap"><b style="color:var(--pink)">${r.from}</b> ← <b style="color:var(--ok)">${r.to}</b></span>
+      </div>`).join('');
+}
+async function doRevert(){
+  if(!revPlan||!revPlan.length)return;
+  const c=sbClient();if(!c)return;
+  const btn=document.getElementById('REVBTN');
+  btn.disabled=true;btn.textContent='⏳ מחזיר…';
+  let err=null;
+  for(const r of revPlan){
+    const {error}=await c.from('items').update({qty:r.to,updated_by:REVERT_SRC}).eq('id',r.id);
+    if(error){err=error;break;}
+  }
+  btn.disabled=false;btn.textContent='אשר והחזר';
+  if(err){
+    if(isAuthError(err)){closeRev();showInvExpired();return;}
+    revSt('er','❌ '+err.message);return;
+  }
+  const n=revPlan.length;revPlan=null;
+  closeRev();
+  await loadInv();
+  toast(`↩ ${n} פריטים הוחזרו למצב שלפני 5 דקות`);
 }
 function serName(sz,col,d){return `מיילר ${sz}" ${col} ספרה ${d}`;}
 function openSeries(){
