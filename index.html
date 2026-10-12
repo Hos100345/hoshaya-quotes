@@ -487,6 +487,7 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
     <button class="btn bl" style="flex:1;margin-bottom:0" onclick="openImp()">📥 ייבוא</button>
   </div>
   <button class="btn gray" style="margin-top:7px" onclick="openSeries()">🔢 סדרת ספרות חדשה (0–9)</button>
+  <button class="btn gray" style="margin-top:7px" onclick="openLatex()">🎈 סדרת לטקס חדשה (לפי קוד ספק)</button>
   <button class="btn gray" style="margin-top:7px" onclick="openRevert()">↩ אפס את 5 הדקות האחרונות</button>
 
   <div style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:10px;color:var(--muted)">
@@ -569,6 +570,26 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
     <div id="SERPREV" style="font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:12px">מלא גודל וצבע</div>
     <button class="mbt p" id="SERBTN" onclick="createSeries()">צור 10 פריטים</button>
     <button class="mbt s" onclick="closeSer()">ביטול</button>
+  </div>
+</div>
+
+<!-- Latex Series Modal -->
+<div class="mov" id="LATM" onclick="closeLatOut(event)">
+  <div class="msh" style="max-height:88vh;overflow-y:auto">
+    <div class="mhdl"></div>
+    <div class="mttl">🎈 סדרת לטקס חדשה</div>
+    <div id="LATST" class="st" style="display:none"></div>
+    <label class="lbl">סוג — כפי שמזמינים אותו אצל הספק</label>
+    <input type="hidden" id="LATTYPE" value="">
+    <div class="fscr fwrap" id="LATTYPES" style="margin-bottom:8px;margin-top:3px"></div>
+    <label class="lbl">צבעים — מופרדים בפסיק או בשורה</label>
+    <textarea class="inp" id="LATCOLS" style="min-height:66px;resize:vertical;line-height:1.7;margin-top:3px" placeholder="אדום, לבן, תכלת" oninput="latPrev()"></textarea>
+    <div class="fscr fwrap" id="LATCOLSC" style="margin:6px 0 8px"></div>
+    <label class="lbl">כמות מינימום לכל צבע (התראת חוסר)</label>
+    <input class="inp" id="LATMIN" type="number" min="0" value="50" style="margin-bottom:8px;margin-top:3px">
+    <div id="LATPREV" style="font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:12px">בחר סוג</div>
+    <button class="mbt p" id="LATBTN" onclick="createLatex()">צור פריטים</button>
+    <button class="mbt s" onclick="closeLat()">ביטול</button>
   </div>
 </div>
 
@@ -1281,10 +1302,40 @@ function colorDot(c,size){
   if(!h)return '';
   return `<span style="display:inline-block;width:${size||9}px;height:${size||9}px;border-radius:50%;background:${h};border:1px solid rgba(255,255,255,.35);margin-left:5px;vertical-align:-1px"></span>`;
 }
+// ── לטקס: טיפוסי הקטלוג של הספק ──
+// הקוד (A50 / GB150) הוא מה שמזמינים בו אצל הספק, ולכן הוא לא יושב בשם
+// הפריט (שמשמש לספירה) אלא נגזר ממנו — ומודפס ברשימת החוסרים.
+// שם פריט לטקס בנוי תמיד כך: לטקס <גודל>" <גימור> <צבע>.
+// לכן הצבע נגזר מהמבנה (invColorOf) וכל צבע חדש עובד מיד בלי לעדכן רשימה בקוד.
+const LATEX_FINISHES=['רגיל','מטאלי','כרום','פסטל'];
+const LATEX_TYPES=[
+ {code:'A50',   sz:'5',  fin:'רגיל'},
+ {code:'Am50',  sz:'5',  fin:'מטאלי'},
+ {code:'Ab50',  sz:'5',  fin:'כרום'},
+ {code:'G110',  sz:'12', fin:'פסטל'},
+ {code:'GM110', sz:'11', fin:'מטאלי'},
+ {code:'GB120', sz:'13', fin:'כרום'},
+ {code:'G150',  sz:'19', fin:''},
+ {code:'GB150', sz:'19', fin:'כרום'},
+];
+function latexName(t,col){return `לטקס ${t.sz}" ${t.fin?t.fin+' ':''}${String(col).trim()}`;}
+// משם פריט חזרה לטיפוס — גודל + גימור מזהים ביייחוד (19" רגיל מול 19" כרום)
+function latexTypeOf(name){
+  const t=String(name||'');
+  // לא \\b — גבול מילה ב-JS מוגדר מול [A-Za-z0-9_], ואות עברית אינה שם. אחרי "לטקס" אין גבול והתנאי תמיד נכשל.
+  if(!/^\s*לטקס\s/.test(t))return null;
+  const sz=(invSizeOf(t)||'').replace(/"/g,'');
+  if(!sz)return null;
+  const fin=LATEX_FINISHES.find(f=>t.includes(' '+f+' '))||'';
+  return LATEX_TYPES.find(x=>x.sz===sz&&x.fin===fin)||null;
+}
 function invColorOf(name){
   const t=String(name||'');
   const m=t.match(/["'׳״]\s*(.+?)\s+ספרה\s*\d/);
   if(m&&m[1].trim())return m[1].trim();
+  // לטקס: לטקס <גודל>" <גימור> <צבע> — הצבע הוא מה שנשאר בסוף
+  const L=t.match(/^\s*לטקס\s+\d+\s*["'׳״]\s*(?:רגיל|מטאלי|כרום|פסטל)?\s*(.+)$/);
+  if(L&&L[1].trim())return L[1].trim();
   for(const c of INV_COLORS)if(t.includes(c))return c;
   return '';
 }
@@ -1611,6 +1662,98 @@ function invColorJump(col){
   invQ=col;const q=document.getElementById('INVQ');if(q)q.value=col;
   document.querySelectorAll('#INVFSC .chip').forEach(x=>x.classList.toggle('on',x.textContent.includes('מיילר')));
   hideSug();renderInv();
+}
+// ── סדרת לטקס ──
+// למה סדרה ולא פריט-פריט: לטקס נקנה לפי סוג (קוד ספק) ובכל סוג יש
+// עשרות צבעים. הקלדה אחת-אחת לא רק אטיתה — היא מייצרת אותו צבע בשתי
+// גרסאות לפי הקלדה ("תכלת מט" מול "תכלת-מט"), ואז אותו פריט נספר בשני מקומות.
+function openLatex(){
+  document.getElementById('LATTYPE').value='';
+  document.getElementById('LATCOLS').value='';
+  document.getElementById('LATMIN').value='50';
+  document.getElementById('LATST').style.display='none';
+  latPrev();
+  document.getElementById('LATM').classList.add('open');
+}
+function closeLat(){document.getElementById('LATM').classList.remove('open');}
+function closeLatOut(e){if(e.target.id==='LATM')closeLat();}
+function latSt(t,m){const el=document.getElementById('LATST');el.className=`st ${t}`;el.textContent=m;el.style.display='block';}
+function latTypeLabel(t){return `${t.code} · ${t.sz}"${t.fin?' '+t.fin:''}`;}
+function latVals(){
+  const code=document.getElementById('LATTYPE').value;
+  const cols=[...new Set((document.getElementById('LATCOLS').value||'')
+    .split(/[,\n;·]+/).map(x=>x.trim().replace(/\s+/g,' ')).filter(Boolean))];
+  return{t:LATEX_TYPES.find(x=>x.code===code)||null,cols,
+         min:Math.max(0,parseInt(document.getElementById('LATMIN').value,10)||0)};
+}
+function latChips(){
+  const {t,cols}=latVals();
+  const have=new Set(invItems.map(i=>i.name));
+  const tb=document.getElementById('LATTYPES');
+  if(tb){
+    const cnt={};
+    invItems.forEach(i=>{const x=latexTypeOf(i.name);if(x)cnt[x.code]=(cnt[x.code]||0)+1;});
+    tb.innerHTML=LATEX_TYPES.map(x=>`<button class="chip${t&&t.code===x.code?' on':''}" data-lt="${escHtml(x.code)}">${escHtml(latTypeLabel(x))}${cnt[x.code]?` <span style="opacity:.55">${cnt[x.code]}</span>`:''}</button>`).join('');
+    if(!tb._bound){tb._bound=1;tb.addEventListener('click',e=>{const b=e.target.closest('[data-lt]');if(!b)return;
+      document.getElementById('LATTYPE').value=b.dataset.lt;latPrev();});}
+  }
+  const cb=document.getElementById('LATCOLSC');
+  if(cb){
+    // צבעים שכבר בשימוש במלאי באים ראשונים — כך אותו צבע נכתב תמיד אותו דבר
+    const used=[];invItems.forEach(i=>{const c=invColorOf(i.name);if(c&&!used.includes(c))used.push(c);});
+    const pal=Object.keys(COLOR_HEX).filter(c=>!used.includes(c));
+    const picked=new Set(cols);
+    cb.innerHTML=used.concat(pal).map(c=>{
+      const on=picked.has(c),ex=!!t&&have.has(latexName(t,c));
+      return `<button class="chip${on?' on':''}" data-lc="${escHtml(c)}"${ex&&!on?' style="opacity:.45"':''}>${colorDot(c)}${escHtml(c)}${ex?' ✓':''}</button>`;}).join('');
+    if(!cb._bound){cb._bound=1;cb.addEventListener('click',e=>{const b=e.target.closest('[data-lc]');if(!b)return;
+      const c=b.dataset.lc,v=latVals().cols;
+      document.getElementById('LATCOLS').value=(v.includes(c)?v.filter(x=>x!==c):v.concat([c])).join(', ');
+      latPrev();});}
+  }
+}
+function latPrev(){
+  latChips();
+  const {t,cols}=latVals();
+  const box=document.getElementById('LATPREV');
+  if(!box)return;
+  if(!t){box.innerHTML='בחר סוג — הקוד הוא מה שמזמינים בו אצל הספק';return;}
+  if(!cols.length){box.innerHTML=`<b>${escHtml(latTypeLabel(t))}</b> — הקלד או בחר צבעים`;return;}
+  const have=new Set(invItems.map(i=>i.name));
+  const nw=cols.filter(c=>!have.has(latexName(t,c)));
+  const dup=cols.length-nw.length;
+  box.innerHTML=(nw.length
+    ?`ייווצרו <b>${nw.length}</b> פריטים: `+nw.slice(0,4).map(c=>escHtml(latexName(t,c))).join(' · ')+(nw.length>4?` ועוד ${nw.length-4}`:'')
+    :'<span style="color:var(--gold)">כל הצבעים שנבחרו כבר קיימים</span>')
+    +(nw.length&&dup?`<br><span style="color:var(--gold)">${dup} כבר קיימים ולא ייווצרו שוב</span>`:'');
+}
+async function createLatex(){
+  const {t,cols,min}=latVals();
+  if(!t){latSt('er','⚠️ נא לבחור סוג');return;}
+  if(!cols.length){latSt('er','⚠️ נא להקליד לפחות צבע אחד');return;}
+  const c=sbClient();
+  if(!c||!invUser){latSt('er','יש להתחבר קודם');return;}
+  const have=new Set(invItems.map(i=>i.name));
+  const rows=cols.map(col=>latexName(t,col)).filter(n=>!have.has(n))
+    .map(n=>({name:n,category:'לטקס',qty:0,min_qty:min,updated_by:APP_SOURCE}));
+  if(!rows.length){latSt('er','כל הצבעים שנבחרו כבר קיימים');return;}
+  const btn=document.getElementById('LATBTN');
+  btn.disabled=true;btn.textContent='⏳ יוצר…';
+  const {error}=await c.from('items').insert(rows);
+  btn.disabled=false;btn.textContent='צור פריטים';
+  if(error){
+    if(isAuthError(error)){closeLat();showInvExpired();return;}
+    latSt('er','❌ '+error.message);return;
+  }
+  closeLat();
+  await loadInv();
+  // קופצים ישר לסדרה החדשה כדי שאפשר יהיה לספור אותה מיד
+  invCat='לטקס';invSize=t.sz+'"';
+  invQ=cols.length===1?cols[0]:(t.fin||'');
+  const q=document.getElementById('INVQ');if(q)q.value=invQ;
+  document.querySelectorAll('#INVFSC .chip').forEach(x=>x.classList.toggle('on',x.textContent.includes('לטקס')));
+  hideSug();renderInv();
+  toast(`✅ נוצרו ${rows.length} פריטים — ${latTypeLabel(t)}`);
 }
 function openAddInv(){document.getElementById('INVMDEL').style.display='none';document.getElementById('INVMID').value='';document.getElementById('INVMTTL').textContent='➕ הוסף פריט חדש';document.getElementById('INVMNAME').value='';document.getElementById('INVMCAT').value='לטקס';document.getElementById('INVMQTY').value='0';document.getElementById('INVMMIN').value='10';document.getElementById('INVM').classList.add('open');}
 function openEditInv(id){const i=invItems.find(x=>x.id===id);if(!i)return;document.getElementById('INVMDEL').style.display='';document.getElementById('INVMID').value=id;document.getElementById('INVMTTL').textContent='✏️ ערוך פריט';document.getElementById('INVMNAME').value=i.name;document.getElementById('INVMCAT').value=i.cat;document.getElementById('INVMQTY').value=i.qty;document.getElementById('INVMMIN').value=i.min;document.getElementById('INVM').classList.add('open');}
@@ -2135,7 +2278,9 @@ function copyMissing(){
   const missing=invItems.filter(i=>i.qty<i.min);
   if(!missing.length){toast('✅ אין חוסרים!');return;}
   const today=new Date().toLocaleDateString('he-IL');
-  const lines=missing.map(i=>`• ${i.name} — יש: ${i.qty} | צריך: ${i.min}`).join('\n');
+  // קוד הספק נכנס לרשימה ולא לשם הפריט — בספירה הוא רעש, בהזמנה הוא העיקר
+  const lines=missing.map(i=>{const t=latexTypeOf(i.name);
+    return `• ${i.name}${t?` [${t.code}]`:''} — יש: ${i.qty} | צריך: ${i.min}`;}).join('\n');
   const txt=`📦 רשימת חוסרים — ${today}\n\n${lines}\n\nהושעיה אמן בלונים | 050-5918734`;
   navigator.clipboard.writeText(txt).then(()=>toast(`📋 הועתקו ${missing.length} חוסרים!`));
 }
