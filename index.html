@@ -2031,9 +2031,10 @@ function waT(){const n=document.getElementById('QCN')?.value||'הלקוח',ev=do
 function qcopy(){saveQuote(false);navigator.clipboard.writeText(waT()).then(()=>{document.getElementById('QCPB').textContent='✅ הועתק!';setTimeout(()=>document.getElementById('QCPB').textContent='📋 העתק לוואטסאפ',2000);});}
 function qwa(){saveQuote(false);const phone=(document.getElementById('QCP')?.value||'').replace(/\D/g,'').replace(/^0/,'');window.open(phone?`https://wa.me/972${phone}?text=${encodeURIComponent(waT())}`:`https://wa.me/?text=${encodeURIComponent(waT())}`,'_blank');}
 // ── לקוחות Morning ──
-// אומת מול ה-API בלי להשתמש במפתח: POST /api/v1/clients/search קיים (401 ולא
-// 404), ו-preflight מחזיר access-control-allow-origin עבור www.hoshaya.co.il,
-// כלומר הדפדפן ירשה את הקריאה מהאתר.
+// מאומת מול החשבון האמיתי: התשובה היא {items:[...]} עם total.
+// ⚠️ פרמטר החיפוש הוא `name`, לא `search`. עם `search` ה-API מחזיר 200 ואת כל
+// הלקוחות לפי אלף-בית — מתעלם מהטקסט בלי שגיאה. כל חיפוש החזיר אותם 15
+// לקוחות ראשונים, וזה נראה כמו "החיפוש עובד" עד שמחפשים לקוח שלא בהתחלת הרשימה.
 let mToken=null,mTokenAt=0,clTimer=null,clPicked=null;
 async function morningToken(){
   // הטוקן תקף כשעה; שומרים 50 דקות כדי לא ליצור טוקן חדש בכל חיפוש
@@ -2054,7 +2055,7 @@ async function clSearch(q){
     const token=await morningToken();
     const r=await fetch('https://api.greeninvoice.co.il/api/v1/clients/search',{method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
-      body:JSON.stringify({page:1,pageSize:15,search:q})});
+      body:JSON.stringify({page:1,pageSize:15,name:q})});
     const d=await r.json().catch(()=>null);
     if(!r.ok)throw new Error(d&&d.errorMessage?d.errorMessage:`שגיאת שרת (${r.status})`);
     // צורת התשובה לא מאומתת מול החשבון עצמו, אז מקבלים גם items, גם data וגם מערך חשוף
@@ -2085,7 +2086,10 @@ function clearClient(){clPicked=null;const sel=document.getElementById('QCLSEL')
 async function qsend(){const n=document.getElementById('QCN')?.value||'',t=qTotals(),{trv,dp,grand}=t;if(!n||grand<=0){sQSt('er','⚠️ נא למלא שם לקוח וסכום');return;}sQSt('ld','⏳ שולח...');
   try{const token=await morningToken();
     const inc=qIt.filter(i=>i.name&&i.price>0).map(i=>({description:i.name,quantity:i.qty,price:pfr(i.name),vatType:0}));if(trv>0)inc.push({description:'נסיעות',quantity:1,price:trv,vatType:0});
-    const pl={description:document.getElementById('QET')?.value||'שירותי בלונים',type:320,lang:'he',currency:'ILS',vatType:0,discount:dp||0,client:clPicked&&clPicked.id
+    // type 300 = חשבון עסקה = דרישת תשלום. לא 320 (חשבונית מס/קבלה): העסק
+    // הוא עוסק פטור (business.type=3) ואינו מוציא חשבונית מס כלל, וגם 320 מדווח
+    // כסף שכבר התקבל — זה ההפך מדרישה. 114 המסמכים בחשבון: 300, 400 ו-10 בלבד.
+    const pl={description:document.getElementById('QET')?.value||'שירותי בלונים',type:300,lang:'he',currency:'ILS',vatType:0,discount:dp||0,client:clPicked&&clPicked.id
       ? {id:clPicked.id,name:n,phones:document.getElementById('QCP')?.value?[{phone:document.getElementById('QCP').value}]:[]}
       : {name:n,phones:document.getElementById('QCP')?.value?[{phone:document.getElementById('QCP').value}]:[],add:true},income:inc,remarks:"תשלום ב-Bit / Paybox / צ'ק\nהושעיה אמן בלונים | 050-5918734"};
     const dr=await fetch('https://api.greeninvoice.co.il/api/v1/documents',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify(pl)});const doc=await dr.json();
