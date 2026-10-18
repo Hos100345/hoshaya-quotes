@@ -708,8 +708,6 @@ const HD=["א׳","ב׳","ג׳","ד׳","ה׳","ו׳","ז׳","ח׳","ט׳","י׳",
 const HY=[];for(let y=5715;y<=5810;y++)HY.push({v:y,l:`${y} (${y-3760})`});
 const ET=[{v:'birthday',l:'🎂 יום הולדת'},{v:'anniversary',l:'💍 יום נישואים'},{v:'barmitzvah',l:'✡️ בר/בת מצווה'},{v:'other',l:'🎊 אחר'}];
 const SU='https://script.google.com/macros/s/AKfycbyk_ZSw_7nGxhO-U_kL0C5avuxSebLx4VBo9Wj1pFxD2lQQJ24YayWjWT1lDovc2rKV/exec';
-const MID='24d79387-483a-4678-99a5-b888c3761c49';
-const MSC='58854R0q&Q.^*sVu6zW+4h7NzUFB[1sP';
 
 // ── STATE ──
 let cat=[],cF='הכל',cT=0,cFile=null,cData=null,sCat=null,uM='s',bF=[],bC=[];
@@ -2024,15 +2022,22 @@ function qwa(){saveQuote(false);const phone=(document.getElementById('QCP')?.val
 // ⚠️ פרמטר החיפוש הוא `name`, לא `search`. עם `search` ה-API מחזיר 200 ואת כל
 // הלקוחות לפי אלף-בית — מתעלם מהטקסט בלי שגיאה. כל חיפוש החזיר אותם 15
 // לקוחות ראשונים, וזה נראה כמו "החיפוש עובד" עד שמחפשים לקוח שלא בהתחלת הרשימה.
-let mToken=null,mTokenAt=0,clTimer=null,clPicked=null;
-async function morningToken(){
-  // הטוקן תקף כשעה; שומרים 50 דקות כדי לא ליצור טוקן חדש בכל חיפוש
-  if(mToken&&Date.now()-mTokenAt<50*60*1000)return mToken;
-  const r=await fetch('https://api.greeninvoice.co.il/api/v1/account/token',
-    {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:MID,secret:MSC})});
-  const d=await r.json().catch(()=>null);
-  if(!d||!d.token)throw new Error(d&&d.errorMessage?d.errorMessage:`התחברות ל-Morning נכשלה (${r.status})`);
-  mToken=d.token;mTokenAt=Date.now();return mToken;
+let clTimer=null,clPicked=null;
+// כל הקריאות ל-Morning עוברות דרך Edge Function `morning-proxy` (מנהל בלבד, JWT + ADMIN_EMAILS). המפתח של Morning
+// חי ב-Supabase Secrets (MORNING_API_ID / MORNING_API_SECRET) ולא בקוד — הריפו ציבורי.
+async function morningCall(action,body){
+  const token=await aiToken();
+  let res;
+  try{
+    res=await fetch(`${SB_URL}/functions/v1/morning-proxy`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`,'apikey':SB_ANON},body:JSON.stringify({action,...body})});
+  }catch(e){throw new Error('אין חיבור לשרת');}
+  let data=null;
+  try{data=await res.json();}catch(e){}
+  if(res.status===401)throw new Error('פג תוקף החיבור — התחבר מחדש בטאב המלאי');
+  if(res.status===403)throw new Error('החשבון אינו מורשה ל-Morning');
+  if(!data)throw new Error(`שגיאת שרת (${res.status})`);
+  if(data.ok===false||data.error)throw new Error(data.error||`שגיאת שרת (${res.status})`);
+  return data;
 }
 function clSearchInp(v){clearTimeout(clTimer);const q=String(v||'').trim();
   if(q.length<2){document.getElementById('QCLR').innerHTML='';return;}
@@ -2041,23 +2046,34 @@ async function clSearch(q){
   const box=document.getElementById('QCLR');
   box.innerHTML='<div style="font-size:11px;color:var(--muted);padding:5px">⏳ מחפש…</div>';
   try{
-    const token=await morningToken();
-    const r=await fetch('https://api.greeninvoice.co.il/api/v1/clients/search',{method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
-      body:JSON.stringify({page:1,pageSize:15,name:q})});
-    const d=await r.json().catch(()=>null);
-    if(!r.ok)throw new Error(d&&d.errorMessage?d.errorMessage:`שגיאת שרת (${r.status})`);
+    const d=(await morningCall('clients_search',{name:q})).data;
     // צורת התשובה לא מאומתת מול החשבון עצמו, אז מקבלים גם items, גם data וגם מערך חשוף
     const list=Array.isArray(d)?d:(d&&(d.items||d.data))||[];
     if(!list.length){box.innerHTML='<div style="font-size:11px;color:var(--muted);padding:5px">לא נמצא לקוח בשם הזה</div>';return;}
     box.innerHTML=list.slice(0,8).map(c=>{
       const phone=c.phone||(Array.isArray(c.phones)&&c.phones[0]&&(c.phones[0].phone||c.phones[0]))||'';
       const mail=Array.isArray(c.emails)?c.emails[0]:(c.email||'');
-      return `<button class="pkrow" data-cl="${escHtml(JSON.stringify({id:c.id||'',name:c.name||'',phone:String(phone||'')}))}">
+      const cj=escHtml(JSON.stringify({id:c.id||'',name:c.name||'',phone:String(phone||'')}));
+      // 🚫 = השבתת לקוח כפול/ישן ב-Morning (המסמכים הקודמים נשארים). כפתור נפרד — אי אפשר לקנן כפתור בתוך כפתור
+      return `<div style="display:flex;gap:5px;align-items:stretch"><button class="pkrow" style="flex:1;margin-bottom:5px" data-cl="${cj}">
         <span style="text-align:right;min-width:0">${escHtml(c.name||'ללא שם')}${(phone||mail)?`<br><span style="font-size:9px;color:var(--muted)">${escHtml(String(phone||mail))}</span>`:''}</span>
-        <span style="color:var(--bl);font-size:10px;white-space:nowrap">בחר</span></button>`;}).join('');
-    if(!box._bound){box._bound=1;box.addEventListener('click',e=>{const b=e.target.closest('[data-cl]');if(b)pickClient(JSON.parse(b.dataset.cl));});}
+        <span style="color:var(--bl);font-size:10px;white-space:nowrap">בחר</span></button>
+        ${c.id?`<button class="chip" style="margin-bottom:5px" title="השבת לקוח ב-Morning" aria-label="השבת לקוח" data-cl-off="${cj}">🚫</button>`:''}</div>`;}).join('');
+    if(!box._bound){box._bound=1;box.addEventListener('click',e=>{
+      const off=e.target.closest('[data-cl-off]');if(off){clDeactivate(JSON.parse(off.dataset.clOff),off);return;}
+      const b=e.target.closest('[data-cl]');if(b)pickClient(JSON.parse(b.dataset.cl));});}
   }catch(e){box.innerHTML=`<div style="font-size:11px;color:var(--pink);padding:5px">❌ ${escHtml(e.message||String(e))}</div>`;}
+}
+// השבתת לקוח ב-Morning (active:false). מסמכי העבר נשארים בחשבון. אפשר להחזיר מתוך Morning.
+async function clDeactivate(c,btn){
+  if(!c.id)return;
+  if(!confirm(`להשבית את הלקוח "${c.name}" ב-Morning?\nהמסמכים הקודמים שלו נשארים. הוא לא יופיע יותר בחיפוש.`))return;
+  btn.disabled=true;
+  try{
+    await morningCall('client_set_active',{id:c.id,active:false});
+    const row=btn.parentElement;if(row)row.remove();
+    toast(`🚫 הלקוח "${c.name}" הושבת ב-Morning`);
+  }catch(e){btn.disabled=false;toast('❌ '+(e.message||e));}
 }
 function pickClient(c){
   clPicked=c;
@@ -2073,7 +2089,7 @@ function pickClient(c){
 function clearClient(){clPicked=null;const sel=document.getElementById('QCLSEL');sel.style.display='none';sel.innerHTML='';}
 
 async function qsend(){const n=document.getElementById('QCN')?.value||'',t=qTotals(),{trv,dp,grand}=t;if(!n||grand<=0){sQSt('er','⚠️ נא למלא שם לקוח וסכום');return;}sQSt('ld','⏳ שולח...');
-  try{const token=await morningToken();
+  try{
     const inc=qIt.filter(i=>i.name&&i.price>0).map(i=>({description:i.name,quantity:i.qty,price:pfr(i.name),vatType:0}));if(trv>0)inc.push({description:'נסיעות',quantity:1,price:trv,vatType:0});
     // type 300 = חשבון עסקה = דרישת תשלום. לא 320 (חשבונית מס/קבלה): העסק
     // הוא עוסק פטור (business.type=3) ואינו מוציא חשבונית מס כלל, וגם 320 מדווח
@@ -2081,8 +2097,8 @@ async function qsend(){const n=document.getElementById('QCN')?.value||'',t=qTota
     const pl={description:document.getElementById('QET')?.value||'שירותי בלונים',type:300,lang:'he',currency:'ILS',vatType:0,discount:dp||0,client:clPicked&&clPicked.id
       ? {id:clPicked.id,name:n,phones:document.getElementById('QCP')?.value?[{phone:document.getElementById('QCP').value}]:[]}
       : {name:n,phones:document.getElementById('QCP')?.value?[{phone:document.getElementById('QCP').value}]:[],add:true},income:inc,remarks:"תשלום ב-Bit / Paybox / צ'ק\nהושעיה אמן בלונים | 050-5918734"};
-    const dr=await fetch('https://api.greeninvoice.co.il/api/v1/documents',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify(pl)});const doc=await dr.json();
-    if(doc.id){sQSt('ok',`✅ נשלח! מסמך: ${doc.number||doc.id}`);saveQuote(false);}else sQSt('er',`❌ ${doc.message||JSON.stringify(doc)}`);}
+    const doc=(await morningCall('document_create',{payload:pl})).doc;   // שגיאה (גם של Morning) נזרקת מ-morningCall → catch
+    if(doc&&doc.id){sQSt('ok',`✅ נשלח! מסמך: ${doc.number||doc.id}`);saveQuote(false);}else sQSt('er','❌ Morning לא החזיר מסמך');}
   catch(e){sQSt('er',`❌ ${e.message}`);}}
 function sQSt(type,msg){const el=document.getElementById('QIST');el.className=`st ${type}`;el.textContent=msg;el.style.display='block';}
 async function qparse(){
