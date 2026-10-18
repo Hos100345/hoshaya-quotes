@@ -67,6 +67,8 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
 .gi{border-radius:11px;overflow:hidden;position:relative;background:var(--card);aspect-ratio:1;cursor:pointer;border:1px solid var(--border);transition:all .2s}
 .gi:active{transform:scale(.97)}
 .gi img{width:100%;height:100%;object-fit:cover;display:block}
+.gi.hid img{opacity:.35}
+.gstar{position:absolute;top:6px;right:6px;font-size:15px;text-shadow:0 1px 4px rgba(0,0,0,.6)}
 .gl{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(8,14,21,.9));padding:16px 7px 6px;font-size:10px;font-weight:700;color:var(--bl)}
 .gd{font-size:9px;color:var(--muted);font-weight:400}
 .sfb{position:absolute;top:6px;left:6px;background:rgba(8,14,21,.7);border:none;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;color:#fff}
@@ -193,7 +195,7 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
 
 <div class="hdr">
   <div><div class="logo">🎈 <span>הושעיה</span> בלונים</div><div class="lsub">אמן בלונים | 050-5918734</div></div>
-  <button class="dbt" id="HDRBTN" onclick="openDM()">Drive</button>
+  <a class="dbt" id="HDRBTN" href="https://www.hoshaya.co.il/gallery.html" target="_blank" rel="noopener" style="text-decoration:none">🌐 באתר</a>
 </div>
 
 <div class="nav">
@@ -641,23 +643,17 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
     <button class="mbt p" id="SENDWABTN" onclick="sendWaNumber()">📲 פתח וואטסאפ עם המספר</button>
     <button class="mbt s" id="SENDSHAREBTN" onclick="sendWaShare()">📤 שתף את התמונה</button>
     <button class="mbt s" onclick="sendDownload()">⬇️ הורד למכשיר</button>
+    <div id="SENDADM" style="display:none;border-top:1px solid var(--border);margin-top:8px;padding-top:8px">
+      <div style="font-size:10px;color:var(--muted);margin-bottom:5px">ניהול התמונה באתר</div>
+      <button class="mbt s" id="SADHIDE" onclick="sendAdmin('hide')">🙈 להסתיר מהאתר</button>
+      <button class="mbt s" id="SADSTAR" onclick="sendAdmin('star')">☆ נבחרת לעמוד האירועים</button>
+      <button class="mbt s" onclick="sendAdmin('del')" style="color:var(--pink)">🗑 למחוק לגמרי</button>
+    </div>
     <button class="mbt s" onclick="closeSend()">ביטול</button>
   </div>
 </div>
 
-<!-- Drive status modal -->
-<div class="mov" id="DM" onclick="closeDMout(event)">
-  <div class="msh">
-    <div class="mhdl"></div>
-    <div class="mttl" id="DMTTL">🔗 Google Drive</div>
-    <div class="mtxt" id="DMTXT">הקטלוג נקרא מ-<strong>📸 תמונות עבודות</strong> בדרייב שלך, בקריאה בלבד. כל תת-תיקייה היא קטגוריה, וכל תמונה או וידאו שתשים שם יופיעו כאן.</div>
-    <button class="mbt p" id="DMBTN" onclick="driveLogin()">התחבר עם Google</button>
-    <button class="mbt s" onclick="closeDM()">סגור</button>
-  </div>
-</div>
 
-<!-- Google Identity Services -->
-<script src="https://accounts.google.com/gsi/client" async></script>
 
 <!-- Supabase — מקור האמת של המלאי -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
@@ -717,7 +713,7 @@ const MSC='58854R0q&Q.^*sVu6zW+4h7NzUFB[1sP';
 
 // ── STATE ──
 let cat=[],cF='הכל',cT=0,cFile=null,cData=null,sCat=null,uM='s',bF=[],bC=[];
-let driveFolders=[];   // [{id,name}] — תת-התיקיות של 📸 תמונות עבודות = הקטגוריות
+let driveFolders=[];   // [{id,name}] — קטגוריות גלריית האתר: id=מפתח (hoop), name=שם בעברית. (השם נשאר מימי הדרייב)
 function catNames(){return driveFolders.map(f=>f.name);}
 let qIt=[],qLoc=false,qHist=[],pQ=null,eC=0,curQuoteId=null,histPeriod='30';
 
@@ -727,18 +723,18 @@ const BGB=document.getElementById('BGB');
 for(let i=0;i<12;i++){const b=document.createElement('div');b.className='bb';const s=40+Math.random()*60;b.style.cssText=`width:${s}px;height:${s*1.2}px;left:${Math.random()*100}%;color:${cols[i%5]};background:${cols[i%5]};animation-duration:${14+Math.random()*18}s;animation-delay:${-Math.random()*20}s;`;BGB.appendChild(b);}
 
 // ── NAV ──
-function sw(i){cT=i;[0,1,2,3,4].forEach(j=>{document.getElementById(`T${j}`).style.display=j===i?'block':'none';document.getElementById(`nt${j}`).classList.toggle('on',j===i);document.getElementById(`NB${j}`).classList.toggle('on',j===i);});if(i===0){rg();if(isDriveReady())loadDriveCatalog();}if(i===2)qcalc();if(i===4){renderInv();loadInv();}}
+function sw(i){cT=i;[0,1,2,3,4].forEach(j=>{document.getElementById(`T${j}`).style.display=j===i?'block':'none';document.getElementById(`nt${j}`).classList.toggle('on',j===i);document.getElementById(`NB${j}`).classList.toggle('on',j===i);});if(i===0){rg();loadCatalog();}if(i===2)qcalc();if(i===4){renderInv();loadInv();}}
 
-// ── CATALOG — תיקיות Google Drive הן הקטגוריות ──
+// ── CATALOG — התמונות של האתר (Supabase: site_gallery + bucket site-gallery) ──
+// מאז 18/10/2026 הקטלוג הוא גלריית hoshaya.co.il ולא תיקיית הדרייב: מה שרואים כאן = מה שבאתר.
 async function initCatalog(){
-  loadDriveToken();
+  driveFolders=SG_CATS.map(([k,l])=>({id:k,name:l}));
   buildCatChips();buildUploadTargets();
-  if(isDriveReady())await loadDriveCatalog();else rg();
+  await loadCatalog();
 }
 function buildCatChips(){
   const wrap=document.getElementById('FSC');
   const names=['הכל',...catNames()];
-  if(cat.some(i=>i.cat==='כללי')&&!names.includes('כללי'))names.push('כללי');
   if(!names.includes(cF))cF='הכל';
   wrap.innerHTML=names.map(n=>`<button class="chip${n===cF?' on':''}">${escHtml(n)}</button>`).join('');
   [...wrap.querySelectorAll('.chip')].forEach((b,idx)=>{
@@ -747,38 +743,30 @@ function buildCatChips(){
 }
 function buildUploadTargets(){
   const cg=document.getElementById('CG');
-  cg.innerHTML=driveFolders.map(f=>`<button class="cb" data-id="${escHtml(f.id)}" data-cat="${escHtml(f.name)}"><span class="ci">📁</span>${escHtml(f.name)}</button>`).join('')
-    ||'<div style="grid-column:1/-1;font-size:11px;color:var(--muted);text-align:center;padding:6px">אין תיקיות בדרייב</div>';
+  cg.innerHTML=driveFolders.map(f=>`<button class="cb" data-id="${escHtml(f.id)}" data-cat="${escHtml(f.name)}"><span class="ci">🏷️</span>${escHtml(f.name)}</button>`).join('')
+    ||'';
   cg.querySelectorAll('.cb').forEach(b=>b.onclick=()=>sc(b));
   document.getElementById('BCS').innerHTML='<option value="">AI יזהה כל תמונה בנפרד</option>'
-    +driveFolders.map(f=>`<option value="${escHtml(f.name)}">📁 ${escHtml(f.name)}</option>`).join('');
+    +driveFolders.map(f=>`<option value="${escHtml(f.name)}">🏷️ ${escHtml(f.name)}</option>`).join('');
 }
 function rg(){
   const g=document.getElementById('GG'),e=document.getElementById('EMP');
-  if(!isDriveReady()){
+  if(!catLoaded){
     g.innerHTML='';
-    e.innerHTML='<div class="ei">🔗</div><p>הקטלוג יושב ב-Google Drive<br>לחץ <strong>Drive</strong> למעלה כדי להתחבר</p>';
+    e.innerHTML=catErr?`<div class="ei">⚠️</div><p>לא הצלחתי לטעון את התמונות מהאתר<br><span style="font-size:11px">${escHtml(catErr)}</span><br><button class="chip" onclick="loadCatalog()" style="margin-top:8px">↻ נסה שוב</button></p>`:'<div class="ei">⏳</div><p>טוען את התמונות מהאתר…</p>';
     e.style.display='block';return;
   }
   const fl=cF==='הכל'?cat:cat.filter(i=>i.cat===cF);
   if(!fl.length){
     g.innerHTML='';
-    e.innerHTML=`<div class="ei">🎈</div><p>אין תמונות ${cF==='הכל'?'בקטלוג':'בקטגוריה הזו'}<br>אפשר להעלות כאן, או פשוט לשים קובץ בתיקייה בדרייב</p>`;
+    e.innerHTML=`<div class="ei">🎈</div><p>אין תמונות ${cF==='הכל'?'בקטלוג':'בקטגוריה הזו'}<br>אפשר להעלות בלשונית "העלאה" — והן יופיעו גם באתר</p>`;
     e.style.display='block';return;
   }
   e.style.display='none';
-  g.innerHTML=fl.map(it=>{
-    // וידאו: אף פעם לא <img> על הקובץ עצמו. או תמונה ממוזערת שדרייב הכין, או אריח עם 🎬.
-    const media=it.isVideo
-      ? (it.d
-          ? `<img src="${it.d}" alt="${escHtml(it.name)}" loading="lazy" referrerpolicy="no-referrer"><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:34px;text-shadow:0 2px 8px rgba(0,0,0,.6);pointer-events:none">▶</div>`
-          : `<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:var(--surface);color:var(--muted)"><div style="font-size:30px">🎬</div><div style="font-size:9px;padding:0 6px;text-align:center;overflow:hidden">${escHtml(it.name)}</div></div>`)
-      : `<img src="${it.d}" alt="${escHtml(it.cat)}" loading="lazy" referrerpolicy="no-referrer">`;
-    return `<div class="gi" onclick="openSend('${it.id}')">${media}<div class="gl">${escHtml(it.cat)}<div class="gd">${it.dt||''}</div></div><button class="sfb" onclick="event.stopPropagation();shi('${it.id}')">${it.isVideo?'↗':'📤'}</button></div>`;
-  }).join('');
-  const vids=fl.filter(i=>i.isVideo).length;
+  g.innerHTML=fl.map(it=>`<div class="gi${it.hidden?' hid':''}" onclick="openSend('${it.id}')"><img src="${it.d}" alt="${escHtml(it.name||it.cat)}" loading="lazy">${it.featured?'<span class="gstar" title="נבחרת">⭐</span>':''}<div class="gl">${escHtml(it.cat)}<div class="gd">${it.hidden?'🙈 מוסתרת מהאתר':(it.dt||'')}</div></div><button class="sfb" onclick="event.stopPropagation();shi('${it.id}')">📤</button></div>`).join('');
+  const hid=fl.filter(i=>i.hidden).length;
   document.getElementById('CATCOUNT').textContent=
-    `${fl.length} פריטים${vids?` (${vids} וידאו)`:''} · ${driveFolders.length} קטגוריות`;
+    `${fl.length} תמונות${hid?` (${hid} מוסתרות)`:''} · ${driveFolders.length} קטגוריות · ${sgAdmin?'מחובר — אפשר להעלות, להסתיר ולמחוק':'לעריכה: התחבר בלשונית "מלאי"'}`;
 }
 // ── שליחה בוואטסאפ ──
 // אי אפשר לצרף קובץ לוואטסאפ דרך קישור: wa.me נושא טקסט בלבד, ו-navigator.share
@@ -815,10 +803,11 @@ function openSend(id){
   sendItem=it;_sendBlob=null;
   document.getElementById('SENDIMG').src=it.d||'';
   document.getElementById('SENDNAME').textContent=it.name||'';
-  document.getElementById('SENDCAT').textContent=it.isVideo?`${it.cat} · וידאו`:it.cat;
+  document.getElementById('SENDCAT').textContent=it.hidden?`${it.cat} · מוסתרת מהאתר`:it.cat;
   document.getElementById('SENDMSG').value='';
   document.getElementById('SENDST').style.display='none';
-  document.getElementById('SENDSHAREBTN').textContent=it.isVideo?'↗ פתח בדרייב':'📤 שתף את התמונה';
+  document.getElementById('SENDSHAREBTN').textContent='📤 שתף את התמונה';
+  drawSendAdmin();
   renderRecent();
   document.getElementById('SENDM').classList.add('open');
 }
@@ -827,8 +816,8 @@ function closeSendOut(e){if(e.target===document.getElementById('SENDM'))closeSen
 
 async function sendBlob(){
   if(_sendBlob)return _sendBlob;
-  const r=await fetch(`https://www.googleapis.com/drive/v3/files/${sendItem.driveId}?alt=media`,{headers:{Authorization:`Bearer ${gToken}`}});
-  if(!r.ok)throw new Error('Drive '+r.status);
+  const r=await fetch(sendItem.full);   // התמונה הגדולה (1600) מהאתר
+  if(!r.ok)throw new Error('הורדה נכשלה '+r.status);
   _sendBlob=await r.blob();
   return _sendBlob;
 }
@@ -851,21 +840,17 @@ async function sendWaNumber(){
   const btn=document.getElementById('SENDWABTN');
   btn.disabled=true;
   let copied=false;
-  if(!sendItem.isVideo){
-    sSendSt('ld','⏳ מעתיק את התמונה...');
-    try{await copyImageToClipboard(await sendBlob());copied=true;}catch(e){}
-  }
+  sSendSt('ld','⏳ מעתיק את התמונה...');
+  try{await copyImageToClipboard(await sendBlob());copied=true;}catch(e){}
   rememberPhone(phone);
   btn.disabled=false;
   const url=`https://wa.me/${phone}`+(msg?`?text=${encodeURIComponent(msg)}`:'');
   window.open(url,'_blank','noopener');
   if(copied)sSendSt('ok','✅ השיחה נפתחה והתמונה בלוח — לחיצה ארוכה בשדה ההודעה ← הדבק');
-  else if(sendItem.isVideo)sSendSt('ok','✅ השיחה נפתחה. וידאו יש לצרף מהדרייב');
   else sSendSt('er','⚠️ השיחה נפתחה, אבל העתקת התמונה נכשלה — השתמש ב"שתף את התמונה"');
 }
 async function sendWaShare(){
   if(!sendItem)return;
-  if(sendItem.isVideo){window.open(sendItem.link,'_blank','noopener');return;}
   const btn=document.getElementById('SENDSHAREBTN');
   btn.disabled=true;sSendSt('ld','⏳ מכין את התמונה...');
   try{
@@ -892,14 +877,13 @@ async function sendDownload(){
   }catch(e){sSendSt('er','❌ '+e.message);}
 }
 
-// שיתוף מוריד את הקובץ המלא מהדרייב, לא את התמונה הממוזערת
+// שיתוף מוריד את התמונה הגדולה (1600) מהאתר, לא את הממוזערת
 async function shi(id){
   const it=cat.find(i=>i.id===id);
   if(!it)return;
-  if(it.isVideo){window.open(it.link,'_blank','noopener');return;}
   try{
-    const r=await fetch(`https://www.googleapis.com/drive/v3/files/${it.driveId}?alt=media`,{headers:{Authorization:`Bearer ${gToken}`}});
-    if(!r.ok)throw new Error('Drive '+r.status);
+    const r=await fetch(it.full);
+    if(!r.ok)throw new Error('הורדה נכשלה '+r.status);
     const bl=await r.blob();
     const f=new File([bl],it.name||'balloon.jpg',{type:bl.type||'image/jpeg'});
     if(navigator.share&&navigator.canShare&&navigator.canShare({files:[f]})){
@@ -913,7 +897,7 @@ async function shi(id){
 
 // ── UPLOAD ──
 function sm(m){uM=m;document.getElementById('M0').classList.toggle('on',m==='s');document.getElementById('M1').classList.toggle('on',m==='b');if(m==='s'){document.getElementById('DICO').textContent='📸';document.getElementById('DTTI').textContent='בחר תמונה';document.getElementById('DSUB').textContent='לחץ או גרור תמונה';document.getElementById('BGD').style.display='none';document.getElementById('BAC').classList.remove('v');}else{document.getElementById('DICO').textContent='📁';document.getElementById('DTTI').textContent='בחר תיקייה / מרובה תמונות';document.getElementById('DSUB').textContent='לחץ לבחירת מרובה תמונות';document.getElementById('PC').classList.remove('v');}}
-function tu(){if(!isDriveReady()){toast('❌ יש להתחבר ל-Drive קודם',1);return;}if(uM==='s')document.getElementById('fi').click();else document.getElementById('bi').click();}
+function tu(){if(uM==='s')document.getElementById('fi').click();else document.getElementById('bi').click();}
 async function hs(files){if(!files||!files.length)return;cFile=files[0];const r=new FileReader();r.onload=async e=>{cData=e.target.result;document.getElementById('PI').src=cData;document.getElementById('PC').classList.add('v');sCat=null;document.querySelectorAll('#CG .cb').forEach(b=>b.classList.remove('on'));document.getElementById('SVB').disabled=true;document.getElementById('AIR').innerHTML=`<div class="anl"><div class="dots"><span></span><span></span><span></span></div> מנתח...</div>`;document.getElementById('AID').textContent='';await aiImg(cData);};r.readAsDataURL(cFile);}
 function sc(btn){
   document.querySelectorAll('#CG .cb').forEach(b=>b.classList.remove('on'));
@@ -923,19 +907,19 @@ function sc(btn){
 }
 async function svs(){
   if(!cFile||!sCat)return;
-  if(!isDriveReady()){toast('❌ יש להתחבר ל-Drive',1);return;}
   const btn=document.getElementById('SVB');btn.disabled=true;btn.textContent='⏳ מעלה...';
   const pb=document.getElementById('PB'),pf=document.getElementById('PF');pb.classList.add('v');pf.style.width='30%';
   try{
     const folderId=sCat.id;
     if(!folderId)throw new Error('לא נבחרה תיקייה קיימת');
     pf.style.width='65%';
-    await uploadToDrive(cFile,folderId);
+    const r=await uploadToSite([{file:cFile,cat:folderId}]);
+    if(!r.ok)throw new Error(r.err||'ההעלאה נכשלה');
     pf.style.width='100%';
-    toast('✅ נשמר בדרייב');
+    toast('✅ עלה לאתר ולקטלוג');
     cFile=null;cData=null;sCat=null;
     document.getElementById('PC').classList.remove('v');document.getElementById('fi').value='';
-    await loadDriveCatalog();
+    await loadCatalog();
   }catch(e){toast('❌ '+e.message,1);}
   finally{btn.disabled=true;btn.textContent='💾 שמור לקטלוג';pb.classList.remove('v');pf.style.width='0%';}
 }
@@ -943,26 +927,31 @@ async function hb(files){if(!files||!files.length)return;bF=Array.from(files);bC
 async function rbAI(){lastAIErr='';toast('🤖 מנתח...');for(let i=0;i<bF.length;i++){const ov=document.getElementById(`BO${i}`);if(ov)ov.textContent='🔍';await new Promise(res=>{const r=new FileReader();r.onload=async e=>{const c=await aiQ(e.target.result);bC[i]=c;const bc=document.getElementById(`BC${i}`);if(bc)bc.textContent=c||'?';if(ov)ov.textContent=c?'✅':'⚠️';res();};r.readAsDataURL(bF[i]);});}const miss=bC.filter(c=>!c).length;
   toast(miss?`⚠️ ${miss} לא זוהו — ${lastAIErr||'בחר קטגוריה ידנית'}`:'✅ זיהוי הושלם!',miss?1:0);}
 async function svb(){
-  if(!isDriveReady()){toast('❌ יש להתחבר ל-Drive',1);return;}
   const mc=document.getElementById('BCS').value;
   const btn=document.querySelector('.bsv');if(btn){btn.disabled=true;btn.textContent='⏳ מעלה...';}
   let saved=0,failed=0,noFolder=0;
+  const jobs=[];
   for(let i=0;i<bF.length;i++){
     const name=mc||bC[i];
     const ov=document.getElementById(`BO${i}`);
     const folder=driveFolders.find(f=>f.name===name);
-    // לא יוצרים תיקיות. בלי תיקייה קיימת הקובץ לא עולה.
-    if(!folder){noFolder++;if(ov)ov.textContent='📁';continue;}
-    try{
-      await uploadToDrive(bF[i],folder.id);
-      saved++;if(ov)ov.textContent='✅';
-    }catch(e){failed++;if(ov)ov.textContent='❌';}
+    // בלי קטגוריה קיימת התמונה לא עולה — אחרת היא לא תופיע באף לשונית באתר
+    if(!folder){noFolder++;if(ov)ov.textContent='🏷️';continue;}
+    if(ov)ov.textContent='⏳';
+    jobs.push({file:bF[i],cat:folder.id,i});
   }
-  if(noFolder)toast(`📁 ${noFolder} ללא תיקייה מתאימה — בחר תיקייה מהרשימה`,1);
-  toast(failed?`✅ ${saved} הועלו, ❌ ${failed} נכשלו`:`✅ ${saved} תמונות הועלו לדרייב`,failed?1:0);
+  if(jobs.length){
+    try{
+      const r=await uploadToSite(jobs,(job,ok)=>{const ov=document.getElementById(`BO${job.i}`);if(ov)ov.textContent=ok?'✅':'❌';});
+      saved=r.done;failed=r.fail;
+      if(r.err&&!saved)toast('❌ '+r.err,1);
+    }catch(e){failed=jobs.length;toast('❌ '+e.message,1);}
+  }
+  if(noFolder)toast(`🏷️ ${noFolder} בלי קטגוריה — בחר קטגוריה מהרשימה`,1);
+  toast(failed?`✅ ${saved} הועלו, ❌ ${failed} נכשלו`:`✅ ${saved} תמונות עלו לאתר ולקטלוג`,failed?1:0);
   bF=[];bC=[];document.getElementById('BGD').style.display='none';document.getElementById('BAC').classList.remove('v');document.getElementById('bi').value='';
   if(btn){btn.disabled=false;btn.textContent='💾 שמור הכל';}
-  await loadDriveCatalog();
+  await loadCatalog();
 }
 const DZ=document.getElementById('DZ');DZ.addEventListener('dragover',e=>{e.preventDefault();DZ.classList.add('ov');});DZ.addEventListener('dragleave',()=>DZ.classList.remove('ov'));DZ.addEventListener('drop',e=>{e.preventDefault();DZ.classList.remove('ov');const f=e.dataTransfer.files;if(f.length===1)hs(f);else hb(f);});
 
@@ -1030,7 +1019,7 @@ let lastAIErr='';
 async function aiQ(b64,v=false){
   try{
     const names=catNames();
-    if(!names.length){lastAIErr='אין תיקיות בדרייב לבחור מהן';return null;}
+    if(!names.length){lastAIErr='אין קטגוריות לבחור מהן';return null;}
     const d=await aiCall('vision',{image:await imgForAI(b64),categories:names});
     if(v)document.getElementById('AID').textContent=d.description||'';
     return d.category||null;
@@ -1150,7 +1139,7 @@ async function initInv(){
   if(!c){showInvGate('❌ ספריית Supabase לא נטענה — בדוק חיבור לרשת');return;}
   const {data:{session}}=await c.auth.getSession();
   applyInvSession(session);
-  c.auth.onAuthStateChange((_ev,sess)=>applyInvSession(sess));
+  c.auth.onAuthStateChange((_ev,sess)=>{applyInvSession(sess);if(!!sess!==sgAdmin)loadCatalog();});
   // האזנה אחת מואצלת: שם גודל מכיל גרש כפול (34"), ו-onclick עם מחרוזת כזו
   // בתוך תכונת HTML נחתך באמצע — אותה מלכודת שכבר נשרפנו בה ברשימת המחירון.
   const szc=document.getElementById('INVSZC');
@@ -2266,8 +2255,6 @@ function renderHist(){
   }).join('');
 }
 
-// ── DRIVE ──
-
 // ── REGISTRATION ──
 function dO(arr,ph){return`<option value="">${ph}</option>`+arr.map(d=>`<option value="${d}">${d}</option>`).join('');}
 function yO(){return`<option value="">שנה</option>`+HY.map(y=>`<option value="${y.v}">${y.l}</option>`).join('');}
@@ -2289,128 +2276,114 @@ function copyMissing(){
   navigator.clipboard.writeText(txt).then(()=>toast(`📋 הועתקו ${missing.length} חוסרים!`));
 }
 
-// ── DRIVE ──
-const GCLIENT_ID='814302848975-2pis91kp20n3eg92bv7gdmlvfsh9fl6j.apps.googleusercontent.com';
-const GSCOPES='https://www.googleapis.com/auth/drive';
-const CATALOG_FOLDER_NAME='📸 תמונות עבודות';
-// מזהה קבוע. קריאה בלבד — לא יוצרים, לא מזיזים, לא משנים שמות.
-const CATALOG_ROOT_ID='176FEefUBgllY3xB5AOGgGq1yW0o_pJkr';
-let gToken=null,gTokenExpiry=0,catalogFolderId=null;
+// ── גלריית האתר (במקום הדרייב, 18/10/2026) ──
+// קריאה: REST ציבורי (רק תמונות גלויות). מחובר כבעלים (התחברות המלאי) → Edge Function site-gallery
+// עם הטוקן — רואים גם מוסתרות, מעלים, מסתירים, מסמנים ⭐ ומוחקים. ההרשאה נבדקת בשרת (ADMIN_EMAILS).
+// אותן קטגוריות כמו באתר (js/main.js catConfig) ובדף gallery-admin.html.
+const SG_FN=`${SB_URL}/functions/v1/site-gallery`;
+const SG_PUB=`${SB_URL}/storage/v1/object/public/site-gallery/`;
+const SG_CATS=[['events','עיצוב אירועים'],['arch','קשת'],['hoop','חישוק'],['column','עמוד'],['numbers','מספרים'],['frame','מסגרת'],['centerpieces','מרכזי שולחן'],['garlands','גירלנדות'],['bar','בר בלונים ודמויות'],['bar-chars','דמויות של בר בלונים'],['characters','דמויות'],['event-chars','דמויות לאירועים'],['hats','כתרים וכובעים'],['rooms','עיצוב חדרים'],['printing','הדפסה על בלונים'],['photocorner','פינת צילום'],['workshops','סדנאות'],['satisfied','לקוחות מרוצים']];
+const SG_LABEL=Object.fromEntries(SG_CATS);
+let catLoaded=false,catErr='',sgAdmin=false;
 
-function isDriveReady(){return gToken&&Date.now()<gTokenExpiry;}
-
-function driveLogin(){
-  google.accounts.oauth2.initTokenClient({
-    client_id:GCLIENT_ID,
-    scope:GSCOPES,
-    callback:(resp)=>{
-      if(resp.error){toast('❌ שגיאת התחברות',1);return;}
-      gToken=resp.access_token;
-      gTokenExpiry=Date.now()+(resp.expires_in-60)*1000;
-      localStorage.setItem('gdrive_token',gToken);
-      localStorage.setItem('gdrive_expiry',gTokenExpiry);
-      updateDriveBtn();
-      toast('✅ מחובר ל-Google Drive!');
-      loadDriveCatalog();
-      document.getElementById('DMBTN').textContent='✅ מחובר';
-      document.getElementById('DMTXT').textContent='מחובר בהצלחה! התמונות יישמרו ב-Drive אוטומטית.';
-      closeDM();
-    }
-  }).requestAccessToken();
+async function sgToken(){
+  const c=sbClient();if(!c)return null;
+  try{const {data:{session}}=await c.auth.getSession();
+    const em=(session?.user?.email||'').toLowerCase();
+    return em===INV_OWNER?session.access_token:null;}catch(e){return null;}
 }
-
-function loadDriveToken(){
-  const t=localStorage.getItem('gdrive_token');
-  const e=+localStorage.getItem('gdrive_expiry')||0;
-  if(t&&Date.now()<e){gToken=t;gTokenExpiry=e;updateDriveBtn();}
+async function sgApi(body){
+  const t=await sgToken();
+  if(!t)throw new Error('צריך להתחבר קודם: לשונית "מלאי" ← קישור למייל');
+  let r;
+  try{r=await fetch(SG_FN,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${t}`,apikey:SB_ANON},body:JSON.stringify(body)});}
+  catch(e){throw new Error('אין חיבור לשרת');}
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok||j.error)throw new Error(j.error==='not authorized'?'אין הרשאה — התחבר עם המייל של העסק':(j.error||`שגיאת שרת (${r.status})`));
+  return j;
 }
-
-function updateDriveBtn(){
-  const btn=document.getElementById('HDRBTN');
-  if(isDriveReady()){btn.textContent='✅ Drive';btn.style.color='var(--ok)';}
-  else{btn.textContent='Drive';btn.style.color='var(--bl)';}
+function sgItem(r){
+  return{id:r.id||r.thumb_path,rowId:r.id||null,catKey:r.cat,cat:SG_LABEL[r.cat]||r.cat,name:r.alt||SG_LABEL[r.cat]||'',
+    d:SG_PUB+r.thumb_path,full:SG_PUB+(r.full_path||r.thumb_path),hidden:!!r.hidden,featured:!!r.featured,
+    dt:r.created_at?new Date(r.created_at).toLocaleDateString('he-IL'):''};
 }
-
-async function findCatalogRoot(){return CATALOG_ROOT_ID;}
-
-async function uploadToDrive(file,folderId){
-  const meta={name:file.name,parents:[folderId]};
-  const form=new FormData();
-  form.append('metadata',new Blob([JSON.stringify(meta)],{type:'application/json'}));
-  form.append('file',file);
-  const res=await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,thumbnailLink,createdTime',{method:'POST',headers:{Authorization:`Bearer ${gToken}`},body:form});
-  const data=await res.json().catch(()=>null);
-  if(!res.ok||!data||!data.id)throw new Error(data?.error?.message||`העלאה נכשלה (${res.status})`);
-  return data;
-}
-
-async function listDriveImages(folderId){
-  // תמונות ווידאו בלבד — PDF ומסמכי Google נשארים בחוץ, אחרת נוצרים כרטיסים שבורים
-  const q=`'${folderId}' in parents and (mimeType contains 'image/' or mimeType contains 'video/') and trashed=false`;
-  const out=[];let token='';
-  for(let page=0;page<10;page++){
-    const url=`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=nextPageToken,files(id,name,mimeType,thumbnailLink,webViewLink,createdTime)&orderBy=createdTime desc&pageSize=200`+(token?`&pageToken=${encodeURIComponent(token)}`:'');
-    const res=await gFetch(url);
-    if(res.error)throw new Error(res.error.message);
-    out.push(...(res.files||[]));
-    token=res.nextPageToken||'';
-    if(!token)break;
-  }
-  return out;
-}
-
-function driveItem(f,catName){
-  const mt=f.mimeType||'';
-  return{
-    id:f.id,driveId:f.id,cat:catName,name:f.name,fromDrive:true,
-    mime:mt,isVideo:mt.startsWith('video/'),
-    link:f.webViewLink||`https://drive.google.com/file/d/${f.id}/view`,
-    // thumbnailLink מגיע ב-=s220; מבקשים רזולוציה גבוהה יותר לרשת.
-    // דרייב מייצר תמונה ממוזערת גם לווידאו ול-HEIC.
-    d:(f.thumbnailLink||'').replace(/=s\d+(-c)?$/,'=s800'),
-    dt:f.createdTime?new Date(f.createdTime).toLocaleDateString('he-IL'):''
-  };
-}
-
-// הדרייב הוא מקור האמת של הקטלוג: תת-התיקיות הן הקטגוריות והתמונות נקראות מהן.
-// תמונה שתושם ידנית בתיקייה בדרייב תופיע כאן ברענון הלשונית.
-async function loadDriveCatalog(){
-  if(!isDriveReady()){rg();return;}
+async function loadCatalog(){
+  catErr='';
   try{
-    const root=await findCatalogRoot();
-    const q=`'${root}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
-    const fres=await gFetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)&orderBy=name&pageSize=200`);
-    if(fres.error)throw new Error(fres.error.message);
-    driveFolders=(fres.files||[]).map(f=>({id:f.id,name:f.name}));
-    const out=[];
-    for(const f of await listDriveImages(root))out.push(driveItem(f,'כללי'));
-    for(const fo of driveFolders){
-      for(const f of await listDriveImages(fo.id))out.push(driveItem(f,fo.name));
+    let rows;
+    if(await sgToken()){
+      try{rows=(await sgApi({action:'list'})).rows;sgAdmin=true;}catch(e){sgAdmin=false;}
+    }else sgAdmin=false;
+    if(!rows){
+      const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),15000);
+      const r=await fetch(`${SB_URL}/rest/v1/site_gallery?select=id,cat,alt,thumb_path,full_path,sort,hidden,featured,created_at&order=sort.asc`,{headers:{apikey:SB_ANON,Authorization:`Bearer ${SB_ANON}`},signal:ctl.signal});
+      clearTimeout(t);
+      if(!r.ok)throw new Error('שגיאת שרת '+r.status);
+      rows=await r.json();
     }
-    cat=out;
-    buildCatChips();buildUploadTargets();rg();
-  }catch(e){
-    document.getElementById('GG').innerHTML='';
-    const em=document.getElementById('EMP');
-    em.innerHTML=`<div class="ei">⚠️</div><p>שגיאה בטעינת הקטלוג מהדרייב<br><span style="font-size:11px">${escHtml(e.message)}</span></p>`;
-    em.style.display='block';
-  }
+    // חדשות (sort שלילי) קודם, ואז לפי הסדר באתר. אותה תמונה בשתי קטגוריות = שני אריחים, כמו באתר.
+    cat=(rows||[]).sort((a,b)=>(a.sort||0)-(b.sort||0)).map(sgItem);
+    catLoaded=true;
+  }catch(e){catErr=e.name==='AbortError'?'הטעינה לקחה יותר מדי זמן':e.message;if(!cat.length)catLoaded=false;}
+  rg();
 }
 
-async function gFetch(url,opts={}){
-  const res=await fetch(url,{...opts,headers:{Authorization:`Bearer ${gToken}`,'Content-Type':'application/json',...(opts.headers||{})}});
-  if(res.status===401){
-    gToken=null;gTokenExpiry=0;
-    localStorage.removeItem('gdrive_token');localStorage.removeItem('gdrive_expiry');
-    updateDriveBtn();
-    throw new Error('החיבור ל-Drive פג — יש להתחבר מחדש');
+// הקטנה בדפדפן לשני גדלים (600 לרשת, 1600 להגדלה/שליחה), webp — כמו gallery-admin.html
+function sgLoadImg(file){return new Promise((ok,no)=>{const u=URL.createObjectURL(file),i=new Image();i.onload=()=>ok(i);i.onerror=()=>no(new Error('הקובץ לא נפתח כתמונה (HEIC? בחר מהגלריה של הטלפון)'));i.src=u;});}
+function sgResized(img,max){
+  const k=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));
+  const c=document.createElement('canvas');c.width=Math.round(img.naturalWidth*k);c.height=Math.round(img.naturalHeight*k);
+  const x=c.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(img,0,0,c.width,c.height);
+  return new Promise(ok=>c.toBlob(b=>ok(b),'image/webp',max>1000?.86:.8));
+}
+// jobs=[{file,cat}] → {done,fail,err}. onEach(job,ok) לעדכון אריח באצווה.
+async function uploadToSite(jobs,onEach){
+  let done=0,fail=0,err='';const rows=[];
+  for(let i=0;i<jobs.length;i+=10){
+    const chunk=jobs.slice(i,i+10);
+    const {uploads}=await sgApi({action:'sign',n:chunk.length});
+    for(let k=0;k<chunk.length;k++){
+      const job=chunk[k],u=uploads[k];
+      try{
+        const img=await sgLoadImg(job.file);
+        for(const w of [600,1600]){
+          const blob=await sgResized(img,w);
+          const fd=new FormData();fd.append('cacheControl','31536000');fd.append('',blob,'img.webp');
+          const r=await fetch(u['url'+w],{method:'PUT',headers:{'x-upsert':'false',apikey:SB_ANON},body:fd});
+          if(!r.ok)throw new Error('העלאה '+r.status);
+        }
+        rows.push({cat:job.cat,alt:SG_LABEL[job.cat]||'',thumb_path:u.path600,full_path:u.path1600,top:true});
+        done++;onEach&&onEach(job,true);
+      }catch(e){fail++;err=e.message;onEach&&onEach(job,false);}
+    }
   }
-  return await res.json();
+  if(rows.length)await sgApi({action:'add',rows});
+  return{ok:done>0&&!fail,done,fail,err};
 }
 
-function openDM(){document.getElementById('DM').classList.add('open');}
-function closeDM(){document.getElementById('DM').classList.remove('open');}
-function closeDMout(e){if(e.target===document.getElementById('DM'))closeDM();}
+// כפתורי ניהול בחלון השליחה — רק כשמחוברים כבעלים
+function drawSendAdmin(){
+  const w=document.getElementById('SENDADM');if(!w)return;
+  const it=sendItem;
+  if(!sgAdmin||!it||!it.rowId){w.style.display='none';return;}
+  w.style.display='block';
+  document.getElementById('SADHIDE').textContent=it.hidden?'👁 להחזיר לאתר':'🙈 להסתיר מהאתר';
+  document.getElementById('SADSTAR').textContent=it.featured?'⭐ להוריד מהנבחרות':'☆ נבחרת לעמוד האירועים';
+}
+async function sendAdmin(act){
+  const it=sendItem;if(!it||!it.rowId)return;
+  try{
+    if(act==='hide'){await sgApi({action:'update',id:it.rowId,hidden:!it.hidden});it.hidden=!it.hidden;sSendSt('ok',it.hidden?'🙈 הוסתרה מהאתר (נשארת כאן)':'👁 חזרה לאתר');}
+    if(act==='star'){await sgApi({action:'update',id:it.rowId,featured:!it.featured});it.featured=!it.featured;sSendSt('ok',it.featured?'⭐ נוספה לנבחרות':'הוסרה מהנבחרות');}
+    if(act==='del'){
+      if(!confirm('למחוק את התמונה מהאתר ומהקטלוג לגמרי? אי אפשר לבטל.'))return;
+      await sgApi({action:'delete',id:it.rowId});
+      cat=cat.filter(x=>x.rowId!==it.rowId);closeSend();toast('🗑 נמחקה');rg();return;
+    }
+    document.getElementById('SENDCAT').textContent=it.hidden?`${it.cat} · מוסתרת מהאתר`:it.cat;
+    drawSendAdmin();rg();
+  }catch(e){sSendSt('er','❌ '+e.message);}
+}
 
 // ── UTILS ──
 function toast(msg,isE=0){const t=document.getElementById('TOAST');t.textContent=msg;t.className='toast'+(isE?' e':'')+ ' v';setTimeout(()=>t.className='toast'+(isE?' e':''),3000);}
