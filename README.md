@@ -87,16 +87,36 @@
   הוא `Date.now()+Math.random()` ומכיל נקודה, ש-`querySelector` קורא כמחלקה.
 
 ## לקוחות Morning ומחיקת הצעה
+**כל הקריאות ל-Morning עוברות דרך Edge Function `morning-proxy`** (`supabase/functions/morning-proxy/`).
+המפתח (id + secret) **לא** בקוד: עד 18/10/2026 הוא ישב ב-`index.html` בריפו ציבורי, ומי שפתח את הדף
+יכול היה להפיק מסמכים בחשבון. עכשיו הוא חי רק ב-Supabase Secrets:
+
+| Secret | מה |
+|---|---|
+| `MORNING_API_ID` | מזהה המפתח |
+| `MORNING_API_SECRET` | הסוד |
+
+(`ADMIN_EMAILS` קיים כבר ומשותף עם `ai-gateway`.) דף הסודות:
+`https://supabase.com/dashboard/project/sccivxenkyzxolpraexf/functions/secrets`.
+החלפת מפתח = לעדכן את שני ה-Secrets בדשבורד; אין צורך ב-deploy.
+
+- **מנהל בלבד:** JWT של Supabase + אימייל מול `ADMIN_EMAILS`, `verify_jwt=true`. האפליקציה קוראת
+  עם אותו טוקן של לשונית המלאי (`morningCall` בנוי כמו `aiCall`) — **בלי התחברות למלאי אין חיפוש לקוח ואין שליחת מסמך.**
+- **פעולות:** `health` (האם המפתחות קיימים; עם `probe:true` גם האם Morning מקבל אותם — אף ערך לא חוזר) ·
+  `clients_search` · `document_create` · `client_set_active`.
+- **`document_create` — רשימה לבנה:** רק דרישת תשלום (type 300), עד 60 שורות, כמות/מחיר/הנחה בטווח, שפה/מטבע/מע"מ נקבעים בשרת.
+  type 320 (חשבונית מס/קבלה) נדחה — העסק עוסק פטור.
+- הטוקן של Morning נשמר 50 דקות בזיכרון הפונקציה; 401/403 מ-Morning → טוקן חדש וניסיון חוזר אחד.
+- 🚫 ליד כל לקוח בחיפוש = **השבתה** (`active:false`) של לקוח כפול/ישן. מסמכי העבר נשארים. ⚠️ צורת הבקשה
+  `PUT /clients/{id}` לא אומתה מול החשבון — אם Morning דורש עוד שדות, השגיאה שלו מוצגת כמו שהיא.
+
 **חיפוש לקוח רשום** בכרטיס דרישת התשלום: הקלדה (2 תווים, debounce 450ms) →
-`POST /api/v1/clients/search` → בחירה ממלאת שם וטלפון ומקשרת את המסמך ללקוח
+`clients_search` → בחירה ממלאת שם וטלפון ומקשרת את המסמך ללקוח
 הקיים (`client.id`) במקום ליצור כפילות עם `add:true`.
 
-- אומת מול ה-API **בלי להשתמש במפתח**: הנתיב מחזיר 401 ולא 404 (כלומר קיים),
-  ו-preflight מחזיר `access-control-allow-origin: https://www.hoshaya.co.il`
-  עם `Authorization` ברשימת הכותרות — הדפדפן ירשה את הקריאה מהאתר.
 - **צורת התשובה לא אומתה מול החשבון עצמו**, ולכן הקוד מקבל `items`, `data`
   או מערך חשוף, וטלפון גם כ-`phone` וגם כ-`phones[0].phone`.
-- `morningToken()` מחזיק את הטוקן 50 דקות (תקף שעה) ומשמש גם את `qsend`.
+- ⚠️ פרמטר החיפוש הוא `name`, לא `search` (עם `search` ה-API מחזיר את כל הלקוחות לפי אלף-בית).
 
 **מחיקת הצעה היא רכה:** `deleted_at` נכתב לשורה והיא מסוננת מהרשימה, אף פעם לא
 נמחקת מה-DB. פס "בטל ↩" ל-10 שניות מחזיר אותה. תיעוד עסקי שנמחק בטעות בלחיצה
