@@ -471,6 +471,9 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
     <button class="chip" onclick="invFC('אחר',this)">📦 אחר</button>
   </div>
 
+  <!-- Brand filter — רק בלטקס, שם החברה היא ממד אמיתי -->
+  <div class="fscr fwrap" id="INVBRC" style="margin-bottom:8px;display:none"></div>
+
   <!-- Size filter — נבנה לפי מה שבאמת קיים בקטגוריה -->
   <div class="fscr fwrap" id="INVSZC" style="margin-bottom:8px;display:none"></div>
   <input class="inp" id="INVQ" placeholder="🔎 חיפוש — לחץ כדי לראות ממה אפשר לבחור" oninput="invSearchInp(this.value)" onfocus="showSug()" style="margin-bottom:6px">
@@ -581,9 +584,21 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
     <div class="mhdl"></div>
     <div class="mttl">🎈 סדרת לטקס חדשה</div>
     <div id="LATST" class="st" style="display:none"></div>
-    <label class="lbl">סוג — כפי שמזמינים אותו אצל הספק</label>
-    <input type="hidden" id="LATTYPE" value="">
+    <label class="lbl">חברה</label>
+    <input class="inp" id="LATBR" placeholder="הקלד או בחר מהרשימה" oninput="latPrev()" style="margin-bottom:5px;margin-top:3px">
+    <div class="fscr fwrap" id="LATBRS" style="margin-bottom:8px"></div>
+    <label class="lbl">סוג מוכן — ממלא גודל וגימור בלחיצה</label>
     <div class="fscr fwrap" id="LATTYPES" style="margin-bottom:8px;margin-top:3px"></div>
+    <div style="display:flex;gap:7px;margin-bottom:8px">
+      <div style="flex:1;min-width:0">
+        <label class="lbl">גודל (אינץ׳)</label>
+        <input class="inp" id="LATSZ" inputmode="numeric" placeholder="12" oninput="latPrev()" style="margin-bottom:0;margin-top:3px">
+      </div>
+      <div style="flex:1;min-width:0">
+        <label class="lbl">גימור</label>
+        <input class="inp" id="LATFIN" placeholder="פסטל / כרום / ריק" oninput="latPrev()" style="margin-bottom:0;margin-top:3px">
+      </div>
+    </div>
     <label class="lbl">צבעים — מופרדים בפסיק או בשורה</label>
     <textarea class="inp" id="LATCOLS" style="min-height:66px;resize:vertical;line-height:1.7;margin-top:3px" placeholder="אדום, לבן, תכלת" oninput="latPrev()"></textarea>
     <div class="fscr fwrap" id="LATCOLSC" style="margin:6px 0 8px"></div>
@@ -1102,7 +1117,7 @@ const APP_SOURCE='אפליקציה';
 const INV_CATS=['לטקס','מיילר','טוויסטינג','הליום','אביזרים','אחר'];
 
 let qPickQ='',qPickCat='הכל';
-let SB=null,invUser=null,invItems=[],invCat='הכל',invSize='הכל',invQ='';
+let SB=null,invUser=null,invItems=[],invCat='הכל',invSize='הכל',invBrand='הכל',invQ='';
 
 function sbClient(){
   if(SB)return SB;
@@ -1242,7 +1257,7 @@ function invAdj(id,delta){
 }
 
 function invFC(c,btn){
-  invCat=c;invSize='הכל';
+  invCat=c;invSize='הכל';invBrand='הכל';
   document.querySelectorAll('#INVFSC .chip').forEach(x=>x.classList.remove('on'));
   btn.classList.add('on');renderInv();}
 // הגודל נגזר מהשם, כי הוא מה שבאמת נכתב שם: 34" · 12 אינץ' · 260Q.
@@ -1291,40 +1306,59 @@ function colorDot(c,size){
   if(!h)return '';
   return `<span style="display:inline-block;width:${size||9}px;height:${size||9}px;border-radius:50%;background:${h};border:1px solid rgba(255,255,255,.35);margin-left:5px;vertical-align:-1px"></span>`;
 }
-// ── לטקס: טיפוסי הקטלוג של הספק ──
-// הקוד (A50 / GB150) הוא מה שמזמינים בו אצל הספק, ולכן הוא לא יושב בשם
-// הפריט (שמשמש לספירה) אלא נגזר ממנו — ומודפס ברשימת החוסרים.
-// שם פריט לטקס בנוי תמיד כך: לטקס <גודל>" <גימור> <צבע>.
-// לכן הצבע נגזר מהמבנה (invColorOf) וכל צבע חדש עובד מיד בלי לעדכן רשימה בקוד.
-const LATEX_FINISHES=['רגיל','מטאלי','כרום','פסטל'];
+// ── לטקס: חברה → סוג → צבע ──
+// חברה היא ממד אמיתי ולא קישוט: G110 של ג׳מאר ו-SP-R12 של סמפרטקס שניהם
+// 12" פסטל. בלי שם החברה בשם הפריט שני בלונים שונים לגמרי מקבלים שם זהה,
+// והמלאי סופר אותם יחד. החברה מאומתת מול קידומת הברקוד בחשבונית:
+// 8021886/8055711 = איטליה (ג׳מאר) · 7703340 = קולומביה (סמפרטקס) · 719784 = ארה"ב (טופטקס).
+const LATEX_BRANDS=['ג׳מאר','סמפרטקס','טופטקס'];
+// סדר קריטי: גימור ארוך לפני קצר, אחרת "פסטל מט" נבלע ב"פסטל" — אותה
+// מלכודת בדיוק שהייתה ב"ורוד כהה" מול "ורוד".
+const LATEX_FINISHES=['פסטל דאסק','פסטל מט','פסטל','מטאלי','כרום','מבריק','רפלקס','רגיל','משי'];
+// הספק כותב "מבריק" במקום "כרום" — אותו מוצר, אותו קוד. השם שלנו הוא "כרום",
+// ו"מבריק" מוכר בפענוח כדי ששם שהוקלד מהחשבונית לא ישבור את זיהוי הצבע.
 const LATEX_TYPES=[
- {code:'A50',   sz:'5',  fin:'רגיל'},
- {code:'Am50',  sz:'5',  fin:'מטאלי'},
- {code:'Ab50',  sz:'5',  fin:'כרום'},
- {code:'G110',  sz:'12', fin:'פסטל'},
- {code:'GM110', sz:'11', fin:'מטאלי'},
- {code:'GB120', sz:'13', fin:'כרום'},
- {code:'G150',  sz:'19', fin:''},
- {code:'GB150', sz:'19', fin:'כרום'},
+ {b:'ג׳מאר',   code:'A50',    sz:'5',  fin:'רגיל'},
+ {b:'ג׳מאר',   code:'Am50',   sz:'5',  fin:'מטאלי'},
+ {b:'ג׳מאר',   code:'Ab50',   sz:'5',  fin:'כרום'},
+ {b:'ג׳מאר',   code:'GM110',  sz:'11', fin:'מטאלי'},
+ {b:'ג׳מאר',   code:'G110',   sz:'12', fin:'פסטל'},
+ {b:'ג׳מאר',   code:'GB120',  sz:'13', fin:'כרום'},
+ {b:'ג׳מאר',   code:'G150',   sz:'19', fin:''},
+ {b:'ג׳מאר',   code:'GB150',  sz:'19', fin:'כרום'},
+ {b:'סמפרטקס', code:'SP-R5',  sz:'5',  fin:'פסטל מט'},
+ {b:'סמפרטקס', code:'SP-R5',  sz:'5',  fin:'משי'},
+ {b:'סמפרטקס', code:'SP-R12', sz:'12', fin:'פסטל'},
+ {b:'סמפרטקס', code:'SP-R12', sz:'12', fin:'פסטל מט'},
+ {b:'סמפרטקס', code:'SP-R12', sz:'12', fin:'פסטל דאסק'},
+ {b:'סמפרטקס', code:'SP-R12', sz:'12', fin:'משי'},
+ {b:'סמפרטקס', code:'SP-R12', sz:'12', fin:'רפלקס'},
+ {b:'טופטקס',  code:'TUF11',  sz:'11', fin:''},
 ];
-function latexName(t,col){return `לטקס ${t.sz}" ${t.fin?t.fin+' ':''}${String(col).trim()}`;}
-// משם פריט חזרה לטיפוס — גודל + גימור מזהים ביייחוד (19" רגיל מול 19" כרום)
+function latexName(t,col){return `לטקס ${t.b} ${t.sz}" ${t.fin?t.fin+' ':''}${String(col).trim()}`.replace(/\s+/g,' ').trim();}
+// רגקס אחד מחזיר חברה, גודל, גימור וצבע. החברה והגימור אופציונליים, כך
+// ששמות ישנים בלי חברה ("לטקס 5\" רגיל אדום") ממשיכים להיקרא נכון.
+// מחלקת התווים של החברה פוסלת ספרות בלבד — לא גרשיים — אחרת "ג׳מאר" נפסל.
+const LATEX_RE=new RegExp('^\\s*לטקס\\s+(?:([^\\d]+?)\\s+)?(\\d+)\\s*["\'׳״]\\s*(?:('+LATEX_FINISHES.join('|')+')\\s+)?(.+)$');
+function latexParse(name){
+  const m=String(name||'').match(LATEX_RE);
+  if(!m)return null;
+  return {brand:(m[1]||'').trim(),sz:m[2],fin:m[3]||'',col:(m[4]||'').trim()};
+}
+function latexBrandOf(name){const p=latexParse(name);return p?p.brand:'';}
+// סוג = חברה + גודל + גימור. הקוד עצמו אינו מפתח: SP-R5 מופיע בשני גימורים.
 function latexTypeOf(name){
-  const t=String(name||'');
-  // לא \\b — גבול מילה ב-JS מוגדר מול [A-Za-z0-9_], ואות עברית אינה שם. אחרי "לטקס" אין גבול והתנאי תמיד נכשל.
-  if(!/^\s*לטקס\s/.test(t))return null;
-  const sz=(invSizeOf(t)||'').replace(/"/g,'');
-  if(!sz)return null;
-  const fin=LATEX_FINISHES.find(f=>t.includes(' '+f+' '))||'';
-  return LATEX_TYPES.find(x=>x.sz===sz&&x.fin===fin)||null;
+  const p=latexParse(name);
+  if(!p)return null;
+  return LATEX_TYPES.find(t=>t.b===p.brand&&t.sz===p.sz&&t.fin===p.fin)||null;
 }
 function invColorOf(name){
   const t=String(name||'');
   const m=t.match(/["'׳״]\s*(.+?)\s+ספרה\s*\d/);
   if(m&&m[1].trim())return m[1].trim();
-  // לטקס: לטקס <גודל>" <גימור> <צבע> — הצבע הוא מה שנשאר בסוף
-  const L=t.match(/^\s*לטקס\s+\d+\s*["'׳״]\s*(?:רגיל|מטאלי|כרום|פסטל)?\s*(.+)$/);
-  if(L&&L[1].trim())return L[1].trim();
+  // לטקס: לטקס <חברה> <גודל>" <גימור> <צבע> — הצבע הוא מה שנשאר בסוף
+  const L=latexParse(t);
+  if(L&&L.col)return L.col;
   for(const c of INV_COLORS)if(t.includes(c))return c;
   return '';
 }
@@ -1384,6 +1418,33 @@ function invSizeList(items){
   });
   return keys.map(k=>({key:k,count:c[k]}));
 }
+const NO_BRAND='ללא חברה';
+function invBrandList(items){
+  const c={};
+  items.forEach(i=>{const k=latexBrandOf(i.name)||NO_BRAND;c[k]=(c[k]||0)+1;});
+  // הסדר מהקבוע, וחברה שאינה בו נכנסת אחריו — כך שתוספת חברה חדשה לא
+  // דורשת לגעת בקוד, אבל הסדר הקבוע נשאר יציב
+  const keys=Object.keys(c).sort((a,b)=>{
+    if(a===NO_BRAND)return 1;if(b===NO_BRAND)return -1;
+    const ia=LATEX_BRANDS.indexOf(a),ib=LATEX_BRANDS.indexOf(b);
+    if(ia<0&&ib<0)return a.localeCompare(b,'he');
+    if(ia<0)return 1;if(ib<0)return -1;
+    return ia-ib;
+  });
+  return keys.map(k=>({key:k,count:c[k]}));
+}
+function renderBrandChips(brands){
+  const wrap=document.getElementById('INVBRC');
+  if(!wrap)return;
+  // רק בלטקס, ורק כשבאמת יש יותר מחברה אחת לבחור ממנה
+  if(invCat!=='לטקס'||brands.length<2){wrap.style.display='none';wrap.innerHTML='';return;}
+  const total=brands.reduce((n,b)=>n+b.count,0);
+  wrap.style.display='';
+  wrap.innerHTML=`<button class="chip${invBrand==='הכל'?' on':''}" data-br="הכל">כל החברות <span style="opacity:.55">${total}</span></button>`
+    +brands.map(b=>`<button class="chip${b.key===invBrand?' on':''}" data-br="${escHtml(b.key)}">${escHtml(b.key)} <span style="opacity:.55">${b.count}</span></button>`).join('');
+  if(!wrap._bound){wrap._bound=1;wrap.addEventListener('click',e=>{const b=e.target.closest('[data-br]');if(!b)return;
+    invBrand=b.dataset.br;invSize='הכל';renderInv();});}
+}
 function invSearchInp(v){invQ=v;renderSug();renderInv();}
 function renderSizeChips(sizes){
   const wrap=document.getElementById('INVSZC');
@@ -1399,7 +1460,13 @@ function updateInvStats(){const total=invItems.length;const missing=invItems.fil
 function renderInv(){
   const list=document.getElementById('INVLIST');
   updateInvStats();
-  const base=invCat==='הכל'?invItems:invItems.filter(i=>i.cat===invCat);
+  let base=invCat==='הכל'?invItems:invItems.filter(i=>i.cat===invCat);
+  const brands=invBrandList(base);
+  if(invBrand!=='הכל'&&!brands.some(x=>x.key===invBrand))invBrand='הכל';
+  renderBrandChips(brands);
+  // הגדלים נגזרים אחרי סינון החברה, אחרת 12" של ג׳מאר ושל סמפרטקס
+  // מופיעים כצ'יפ אחד שמערבב שני מוצרים שונים
+  if(invCat==='לטקס'&&invBrand!=='הכל')base=base.filter(i=>(latexBrandOf(i.name)||NO_BRAND)===invBrand);
   const sizes=invSizeList(base);
   if(invSize!=='הכל'&&!sizes.some(x=>x.key===invSize))invSize='הכל';
   renderSizeChips(sizes);
@@ -1412,12 +1479,16 @@ function renderInv(){
   if(!filtered.length){
     list.innerHTML=!invItems.length
       ? '<div style="text-align:center;padding:34px 20px;color:var(--muted);font-size:13px;line-height:1.8">📦 המלאי ריק<br>"＋ הוסף פריט" לפריט בודד, או "📥 ייבוא" לרשימה שלמה</div>'
-      : `<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">אין פריטים${q?' לחיפוש "'+escHtml(invQ)+'"':''}${invSize!=='הכל'?' בגודל '+escHtml(invSize):''}${invCat!=='הכל'?' בקטגוריית '+escHtml(invCat):''}</div>`;
+      : `<div style="text-align:center;padding:30px;color:var(--muted);font-size:13px">אין פריטים${q?' לחיפוש "'+escHtml(invQ)+'"':''}${invSize!=='הכל'?' בגודל '+escHtml(invSize):''}${invBrand!=='הכל'?' של '+escHtml(invBrand):''}${invCat!=='הכל'?' בקטגוריית '+escHtml(invCat):''}</div>`;
     return;
   }
   let html='';
   if(invCat==='הכל'){
     INV_CATS.forEach(cat=>{const items=filtered.filter(i=>i.cat===cat);if(!items.length)return;html+=invGroupHead(cat);html+=items.map(i=>invItemHTML(i)).join('');});
+  }else if(invCat==='לטקס'&&invBrand==='הכל'&&brands.length>1){
+    // לטקס בלי חברה נבחרת — מחולק לפי חברה, כי זאת ההפרדה שבאמת מבדילה
+    // בין מוצרים (12" פסטל קיים גם בג׳מאר וגם בסמפרטקס)
+    brands.forEach(br=>{const items=filtered.filter(i=>(latexBrandOf(i.name)||NO_BRAND)===br.key);if(!items.length)return;html+=invGroupHead(br.key);html+=items.map(i=>invItemHTML(i)).join('');});
   }else if(invSize==='הכל'&&sizes.length>1){
     // קטגוריה נבחרה ולא גודל — מציגים אותה מחולקת לגדלים, כדי שהרשימה
     // תהיה קריאה גם כשיש עשרות פריטים מאותו סוג (ספרות 0–9 בכמה גדלים).
@@ -1657,8 +1728,7 @@ function invColorJump(col){
 // עשרות צבעים. הקלדה אחת-אחת לא רק אטיתה — היא מייצרת אותו צבע בשתי
 // גרסאות לפי הקלדה ("תכלת מט" מול "תכלת-מט"), ואז אותו פריט נספר בשני מקומות.
 function openLatex(){
-  document.getElementById('LATTYPE').value='';
-  document.getElementById('LATCOLS').value='';
+  ['LATBR','LATSZ','LATFIN','LATCOLS'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('LATMIN').value='50';
   document.getElementById('LATST').style.display='none';
   latPrev();
@@ -1669,56 +1739,81 @@ function closeLatOut(e){if(e.target.id==='LATM')closeLat();}
 function latSt(t,m){const el=document.getElementById('LATST');el.className=`st ${t}`;el.textContent=m;el.style.display='block';}
 function latTypeLabel(t){return `${t.code} · ${t.sz}"${t.fin?' '+t.fin:''}`;}
 function latVals(){
-  const code=document.getElementById('LATTYPE').value;
+  const v=id=>(document.getElementById(id).value||'').trim();
   const cols=[...new Set((document.getElementById('LATCOLS').value||'')
     .split(/[,\n;·]+/).map(x=>x.trim().replace(/\s+/g,' ')).filter(Boolean))];
-  return{t:LATEX_TYPES.find(x=>x.code===code)||null,cols,
+  const b=v('LATBR'),sz=v('LATSZ').replace(/[^0-9]/g,''),fin=v('LATFIN');
+  return{t:(b&&sz)?{b,sz,fin}:null,b,sz,fin,cols,
          min:Math.max(0,parseInt(document.getElementById('LATMIN').value,10)||0)};
 }
 function latChips(){
-  const {t,cols}=latVals();
+  const {t,b,sz,fin,cols}=latVals();
   const have=new Set(invItems.map(i=>i.name));
+  // חברות: הקבוע תחילה, ואחריו כל חברה שכבר קיימת במלאי — חברה חדשה
+  // שנוצרה בעבר חוזרת כצ'יפ בלי לגעת בקוד
+  const bb=document.getElementById('LATBRS');
+  if(bb){
+    const seen=[];invItems.forEach(i=>{const x=latexBrandOf(i.name);if(x&&!seen.includes(x)&&!LATEX_BRANDS.includes(x))seen.push(x);});
+    const cnt={};invItems.forEach(i=>{const x=latexBrandOf(i.name);if(x)cnt[x]=(cnt[x]||0)+1;});
+    bb.innerHTML=LATEX_BRANDS.concat(seen).map(x=>
+      `<button class="chip${x===b?' on':''}" data-lb="${escHtml(x)}">${escHtml(x)}${cnt[x]?` <span style="opacity:.55">${cnt[x]}</span>`:''}</button>`).join('');
+    if(!bb._bound){bb._bound=1;bb.addEventListener('click',e=>{const x=e.target.closest('[data-lb]');if(!x)return;
+      document.getElementById('LATBR').value=x.dataset.lb;
+      document.getElementById('LATSZ').value='';document.getElementById('LATFIN').value='';
+      latPrev();});}
+  }
+  // סוגים מוכנים של החברה שנבחרה. אלה קיצור דרך בלבד — גודל וגימור
+  // נשארים שדות חופשיים, כך שסוג חדש לא מחייב עדכון קוד.
   const tb=document.getElementById('LATTYPES');
   if(tb){
-    const cnt={};
-    invItems.forEach(i=>{const x=latexTypeOf(i.name);if(x)cnt[x.code]=(cnt[x.code]||0)+1;});
-    tb.innerHTML=LATEX_TYPES.map(x=>`<button class="chip${t&&t.code===x.code?' on':''}" data-lt="${escHtml(x.code)}">${escHtml(latTypeLabel(x))}${cnt[x.code]?` <span style="opacity:.55">${cnt[x.code]}</span>`:''}</button>`).join('');
-    if(!tb._bound){tb._bound=1;tb.addEventListener('click',e=>{const b=e.target.closest('[data-lt]');if(!b)return;
-      document.getElementById('LATTYPE').value=b.dataset.lt;latPrev();});}
+    const list=b?LATEX_TYPES.filter(x=>x.b===b):[];
+    const cnt={};invItems.forEach(i=>{const x=latexTypeOf(i.name);if(x)cnt[x.code+'|'+x.fin]=(cnt[x.code+'|'+x.fin]||0)+1;});
+    tb.innerHTML=list.length
+      ?list.map((x,idx)=>{const on=t&&x.sz===sz&&x.fin===fin;const k=cnt[x.code+'|'+x.fin];
+        return `<button class="chip${on?' on':''}" data-lt="${LATEX_TYPES.indexOf(x)}">${escHtml(latTypeLabel(x))}${k?` <span style="opacity:.55">${k}</span>`:''}</button>`;}).join('')
+      :`<span style="font-size:10px;color:var(--muted)">${b?'אין סוגים מוכנים לחברה הזאת — מלא גודל וגימור ידנית':'בחר חברה כדי לראות סוגים'}</span>`;
+    if(!tb._bound){tb._bound=1;tb.addEventListener('click',e=>{const x=e.target.closest('[data-lt]');if(!x)return;
+      const ty=LATEX_TYPES[+x.dataset.lt];if(!ty)return;
+      document.getElementById('LATBR').value=ty.b;
+      document.getElementById('LATSZ').value=ty.sz;
+      document.getElementById('LATFIN').value=ty.fin;
+      latPrev();});}
   }
   const cb=document.getElementById('LATCOLSC');
   if(cb){
-    // צבעים שכבר בשימוש במלאי באים ראשונים — כך אותו צבע נכתב תמיד אותו דבר
     const used=[];invItems.forEach(i=>{const c=invColorOf(i.name);if(c&&!used.includes(c))used.push(c);});
     const pal=Object.keys(COLOR_HEX).filter(c=>!used.includes(c));
     const picked=new Set(cols);
     cb.innerHTML=used.concat(pal).map(c=>{
       const on=picked.has(c),ex=!!t&&have.has(latexName(t,c));
       return `<button class="chip${on?' on':''}" data-lc="${escHtml(c)}"${ex&&!on?' style="opacity:.45"':''}>${colorDot(c)}${escHtml(c)}${ex?' ✓':''}</button>`;}).join('');
-    if(!cb._bound){cb._bound=1;cb.addEventListener('click',e=>{const b=e.target.closest('[data-lc]');if(!b)return;
-      const c=b.dataset.lc,v=latVals().cols;
-      document.getElementById('LATCOLS').value=(v.includes(c)?v.filter(x=>x!==c):v.concat([c])).join(', ');
+    if(!cb._bound){cb._bound=1;cb.addEventListener('click',e=>{const x=e.target.closest('[data-lc]');if(!x)return;
+      const c=x.dataset.lc,v=latVals().cols;
+      document.getElementById('LATCOLS').value=(v.includes(c)?v.filter(y=>y!==c):v.concat([c])).join(', ');
       latPrev();});}
   }
 }
 function latPrev(){
   latChips();
-  const {t,cols}=latVals();
+  const {t,b,cols}=latVals();
   const box=document.getElementById('LATPREV');
   if(!box)return;
-  if(!t){box.innerHTML='בחר סוג — הקוד הוא מה שמזמינים בו אצל הספק';return;}
-  if(!cols.length){box.innerHTML=`<b>${escHtml(latTypeLabel(t))}</b> — הקלד או בחר צבעים`;return;}
+  if(!b){box.innerHTML='בחר חברה — היא מה שמבדיל בין 12" של ג׳מאר ל-12" של סמפרטקס';return;}
+  if(!t){box.innerHTML=`<b>${escHtml(b)}</b> — בחר סוג מוכן או מלא גודל`;return;}
+  const head=`<b>${escHtml(b)} ${escHtml(t.sz)}"${t.fin?' '+escHtml(t.fin):''}</b>`;
+  if(!cols.length){box.innerHTML=head+' — הקלד או בחר צבעים';return;}
   const have=new Set(invItems.map(i=>i.name));
   const nw=cols.filter(c=>!have.has(latexName(t,c)));
   const dup=cols.length-nw.length;
   box.innerHTML=(nw.length
-    ?`ייווצרו <b>${nw.length}</b> פריטים: `+nw.slice(0,4).map(c=>escHtml(latexName(t,c))).join(' · ')+(nw.length>4?` ועוד ${nw.length-4}`:'')
+    ?(nw.length===1?'ייווצר פריט אחד: ':`ייווצרו <b>${nw.length}</b> פריטים: `)+nw.slice(0,3).map(c=>escHtml(latexName(t,c))).join(' · ')+(nw.length>3?` ועוד ${nw.length-3}`:'')
     :'<span style="color:var(--gold)">כל הצבעים שנבחרו כבר קיימים</span>')
     +(nw.length&&dup?`<br><span style="color:var(--gold)">${dup} כבר קיימים ולא ייווצרו שוב</span>`:'');
 }
 async function createLatex(){
-  const {t,cols,min}=latVals();
-  if(!t){latSt('er','⚠️ נא לבחור סוג');return;}
+  const {t,b,cols,min}=latVals();
+  if(!b){latSt('er','⚠️ נא לבחור חברה');return;}
+  if(!t){latSt('er','⚠️ נא למלא גודל');return;}
   if(!cols.length){latSt('er','⚠️ נא להקליד לפחות צבע אחד');return;}
   const c=sbClient();
   if(!c||!invUser){latSt('er','יש להתחבר קודם');return;}
@@ -1737,12 +1832,12 @@ async function createLatex(){
   closeLat();
   await loadInv();
   // קופצים ישר לסדרה החדשה כדי שאפשר יהיה לספור אותה מיד
-  invCat='לטקס';invSize=t.sz+'"';
+  invCat='לטקס';invBrand=t.b;invSize=t.sz+'"';
   invQ=cols.length===1?cols[0]:(t.fin||'');
   const q=document.getElementById('INVQ');if(q)q.value=invQ;
   document.querySelectorAll('#INVFSC .chip').forEach(x=>x.classList.toggle('on',x.textContent.includes('לטקס')));
   hideSug();renderInv();
-  toast(`✅ נוצרו ${rows.length} פריטים — ${latTypeLabel(t)}`);
+  toast(`✅ ${rows.length===1?'נוצר פריט אחד':'נוצרו '+rows.length+' פריטים'} — ${t.b} ${t.sz}"`);
 }
 function openAddInv(){document.getElementById('INVMDEL').style.display='none';document.getElementById('INVMID').value='';document.getElementById('INVMTTL').textContent='➕ הוסף פריט חדש';document.getElementById('INVMNAME').value='';document.getElementById('INVMCAT').value='לטקס';document.getElementById('INVMQTY').value='0';document.getElementById('INVMMIN').value='10';document.getElementById('INVM').classList.add('open');}
 function openEditInv(id){const i=invItems.find(x=>x.id===id);if(!i)return;document.getElementById('INVMDEL').style.display='';document.getElementById('INVMID').value=id;document.getElementById('INVMTTL').textContent='✏️ ערוך פריט';document.getElementById('INVMNAME').value=i.name;document.getElementById('INVMCAT').value=i.cat;document.getElementById('INVMQTY').value=i.qty;document.getElementById('INVMMIN').value=i.min;document.getElementById('INVM').classList.add('open');}
