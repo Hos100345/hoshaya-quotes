@@ -491,6 +491,7 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
   </div>
   <button class="btn gray" style="margin-top:7px" onclick="openSeries()">🔢 סדרת ספרות חדשה (0–9)</button>
   <button class="btn gray" style="margin-top:7px" onclick="openLatex()">🎈 סדרת לטקס חדשה (לפי קוד ספק)</button>
+  <button class="btn gray" style="margin-top:7px" onclick="openMoves()">🕒 תנועות אחרונות</button>
   <button class="btn gray" style="margin-top:7px" onclick="openRevert()">↩ אפס את 5 הדקות האחרונות</button>
 
   <div style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:10px;color:var(--muted)">
@@ -553,6 +554,17 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
     <div id="REVLIST" style="overflow-y:auto;flex:1;min-height:0;margin-bottom:10px;font-size:12px"></div>
     <button class="mbt p" id="REVBTN" onclick="doRevert()">אשר והחזר</button>
     <button class="mbt s" onclick="closeRev()">ביטול</button>
+  </div>
+</div>
+
+<!-- Recent movements -->
+<div class="mov" id="MVM" onclick="closeMvOut(event)">
+  <div class="msh" style="max-height:86vh;display:flex;flex-direction:column">
+    <div class="mhdl"></div>
+    <div class="mttl">🕒 תנועות אחרונות</div>
+    <div class="fscr fwrap" id="MVFLT" style="margin-bottom:8px"></div>
+    <div id="MVLIST" style="overflow-y:auto;flex:1;min-height:0;margin-bottom:10px;font-size:12px"></div>
+    <button class="mbt s" onclick="closeMv()">סגור</button>
   </div>
 </div>
 
@@ -1645,6 +1657,80 @@ async function doRevert(){
   closeRev();
   await loadInv();
   toast(`↩ ${n} פריטים הוחזרו למצב שלפני 5 דקות`);
+}
+// ── תנועות אחרונות ──
+// "לקחתי בלון — סימנתי או לא?" היא שאלה שאי אפשר לענות עליה מהמלאי עצמו:
+// המלאי מראה מצב, לא היסטוריה. היומן כבר נכתב בכל עדכון (טריגר על items);
+// מה שחסר היה רק תצוגה. בלי זה התשובה היחידה הייתה לספור את המדף מחדש.
+const MV_LIMIT=120;
+let mvRows=[],mvOnlyDown=false;
+async function openMoves(){
+  const c=sbClient();
+  if(!c||!invUser){toast('יש להתחבר למלאי קודם',1);return;}
+  const box=document.getElementById('MVLIST');
+  box.innerHTML='<div style="color:var(--muted);padding:12px">⏳ קורא את יומן השינויים…</div>';
+  document.getElementById('MVFLT').innerHTML='';
+  document.getElementById('MVM').classList.add('open');
+  const {data,error}=await c.from('movements')
+    .select('item_id,qty_before,qty_after,source,created_at')
+    .order('created_at',{ascending:false}).limit(MV_LIMIT);
+  if(error){
+    if(isAuthError(error)){closeMv();showInvExpired();return;}
+    box.innerHTML=`<div style="color:var(--pink);padding:12px">❌ ${escHtml(error.message)}</div>`;return;
+  }
+  mvRows=(data||[]).map(m=>{
+    const it=invItems.find(x=>x.id===m.item_id);
+    return {name:it?it.name:'(פריט שנמחק)',cat:it?it.cat:'',
+            before:m.qty_before,after:m.qty_after,delta:m.qty_after-m.qty_before,
+            src:m.source||'',at:new Date(m.created_at)};
+  });
+  mvOnlyDown=false;
+  renderMoves();
+}
+function closeMv(){document.getElementById('MVM').classList.remove('open');}
+function closeMvOut(e){if(e.target.id==='MVM')closeMv();}
+function mvDay(d){
+  const key=x=>x.getFullYear()+'-'+x.getMonth()+'-'+x.getDate();
+  const now=new Date(),y=new Date(Date.now()-864e5);
+  if(key(d)===key(now))return 'היום';
+  if(key(d)===key(y))return 'אתמול';
+  return d.toLocaleDateString('he-IL',{weekday:'long',day:'numeric',month:'numeric'});
+}
+function renderMoves(){
+  const box=document.getElementById('MVLIST'),flt=document.getElementById('MVFLT');
+  if(!box)return;
+  if(!mvRows.length){
+    box.innerHTML='<div style="color:var(--muted);padding:16px;text-align:center">אין עדיין תנועות ביומן</div>';
+    flt.innerHTML='';return;
+  }
+  const downs=mvRows.filter(r=>r.delta<0).length;
+  flt.innerHTML=`<button class="chip${mvOnlyDown?'':' on'}" data-mv="all">הכל <span style="opacity:.55">${mvRows.length}</span></button>`
+    +`<button class="chip${mvOnlyDown?' on':''}" data-mv="down">רק הורדות <span style="opacity:.55">${downs}</span></button>`;
+  if(!flt._bound){flt._bound=1;flt.addEventListener('click',e=>{const b=e.target.closest('[data-mv]');if(!b)return;
+    mvOnlyDown=b.dataset.mv==='down';renderMoves();});}
+  const rows=mvOnlyDown?mvRows.filter(r=>r.delta<0):mvRows;
+  if(!rows.length){box.innerHTML='<div style="color:var(--muted);padding:16px;text-align:center">אין הורדות ביומן</div>';return;}
+  let html='',day=null;
+  rows.forEach(r=>{
+    const d=mvDay(r.at);
+    if(d!==day){
+      day=d;
+      const same=rows.filter(x=>mvDay(x.at)===d);
+      const net=same.reduce((n,x)=>n+x.delta,0);
+      html+=`<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:12px 0 5px">
+        <span style="font-size:10px;font-weight:700;color:var(--muted);letter-spacing:1px">${escHtml(d)}</span>
+        <span style="font-size:10px;color:var(--muted)">${same.length===1?'תנועה אחת':same.length+' תנועות'} · ${net===0?'±0':(net>0?'+':'')+net} יח׳</span></div>`;
+    }
+    const neg=r.delta<0;
+    html+=`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:10px;color:var(--muted);white-space:nowrap;min-width:34px">${r.at.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'})}</span>
+      <span style="flex:1;min-width:0">${colorDot(invColorOf(r.name))}${escHtml(r.name)}${r.src&&r.src!==APP_SOURCE?`<span style="font-size:9px;color:var(--muted)"> · ${escHtml(r.src)}</span>`:''}</span>
+      <span style="white-space:nowrap;color:var(--muted);font-size:11px">${r.before} ← ${r.after}</span>
+      <span style="white-space:nowrap;font-weight:800;min-width:30px;text-align:left;color:${neg?'var(--pink)':'var(--ok)'}">${neg?'':'+'}${r.delta}</span>
+    </div>`;
+  });
+  if(mvRows.length>=MV_LIMIT)html+=`<div style="font-size:10px;color:var(--muted);padding:9px 0;text-align:center">מוצגות ${MV_LIMIT} התנועות האחרונות</div>`;
+  box.innerHTML=html;
 }
 function serName(sz,col,d){return `מיילר ${sz}" ${col} ספרה ${d}`;}
 function openSeries(){
