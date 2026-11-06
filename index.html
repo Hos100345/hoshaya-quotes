@@ -735,8 +735,6 @@ const HD=["א׳","ב׳","ג׳","ד׳","ה׳","ו׳","ז׳","ח׳","ט׳","י׳",
 const HY=[];for(let y=5715;y<=5810;y++)HY.push({v:y,l:`${y} (${y-3760})`});
 const ET=[{v:'birthday',l:'🎂 יום הולדת'},{v:'anniversary',l:'💍 יום נישואים'},{v:'barmitzvah',l:'✡️ בר/בת מצווה'},{v:'other',l:'🎊 אחר'}];
 const SU='https://script.google.com/macros/s/AKfycbyk_ZSw_7nGxhO-U_kL0C5avuxSebLx4VBo9Wj1pFxD2lQQJ24YayWjWT1lDovc2rKV/exec';
-const MID='24d79387-483a-4678-99a5-b888c3761c49';
-const MSC='58854R0q&Q.^*sVu6zW+4h7NzUFB[1sP';
 
 // ── STATE ──
 let cat=[],cF='הכל',cT=0,cFile=null,cData=null,sCat=null,uM='s',bF=[],bC=[];
@@ -2200,20 +2198,25 @@ function qcalc(){
 function waT(){const n=document.getElementById('QCN')?.value||'הלקוח',ev=document.getElementById('QET')?.value||'האירוע',ed=document.getElementById('QED')?.value||'',ds=ed?new Date(ed).toLocaleDateString('he-IL'):'',t=qTotals(),dr=document.getElementById('QDRTXT')?.value||`הנחה ${t.dp}%`,lines=qIt.filter(i=>i.name).map(i=>`• ${i.name} × ${i.qty} — ${i.price}₪`).join('\n')||'• (לא נבחרו פריטים)',trvl=t.trv>0?`\n• נסיעות — ${t.trv}₪`:'',disc=t.dp>0?`\n🎁 ${dr}: -${t.da}₪`:'';return `שלום ${n} 😊🎈\n\nהצעת מחיר עבור ${ev}${ds?' — '+ds:''}:\n\n${lines}${trvl}${disc}\n\n*סה"כ לתשלום: ${t.grand}₪*\n\nתשלום ב-Bit / Paybox / צ'ק\n📞 050-5918734 | הושעיה אמן בלונים`;}
 function qcopy(){saveQuote(false);navigator.clipboard.writeText(waT()).then(()=>{document.getElementById('QCPB').textContent='✅ הועתק!';setTimeout(()=>document.getElementById('QCPB').textContent='📋 העתק לוואטסאפ',2000);});}
 function qwa(){saveQuote(false);const phone=(document.getElementById('QCP')?.value||'').replace(/\D/g,'').replace(/^0/,'');window.open(phone?`https://wa.me/972${phone}?text=${encodeURIComponent(waT())}`:`https://wa.me/?text=${encodeURIComponent(waT())}`,'_blank');}
-// ── לקוחות Morning ──
-// מאומת מול החשבון האמיתי: התשובה היא {items:[...]} עם total.
-// ⚠️ פרמטר החיפוש הוא `name`, לא `search`. עם `search` ה-API מחזיר 200 ואת כל
-// הלקוחות לפי אלף-בית — מתעלם מהטקסט בלי שגיאה. כל חיפוש החזיר אותם 15
-// לקוחות ראשונים, וזה נראה כמו "החיפוש עובד" עד שמחפשים לקוח שלא בהתחלת הרשימה.
-let mToken=null,mTokenAt=0,clTimer=null,clPicked=null;
-async function morningToken(){
-  // הטוקן תקף כשעה; שומרים 50 דקות כדי לא ליצור טוקן חדש בכל חיפוש
-  if(mToken&&Date.now()-mTokenAt<50*60*1000)return mToken;
-  const r=await fetch('https://api.greeninvoice.co.il/api/v1/account/token',
-    {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:MID,secret:MSC})});
+// ── Morning — הכול דרך morning-proxy בצד שרת ──
+// המפתח (id+secret) ישב כאן בקוד. הריפו ציבורי והקוד נשלח לכל דפדפן
+// שנכנס לאתר, כלומר כל אחד יכול היה להפיק ולבטל מסמכים בחשבון ולקרוא
+// את כל רשימת הלקוחות. עכשיו המפתח חי רק ב-Supabase Secrets, והדפדפן שולח
+// רק את ה-JWT של המנהל. הפונקציה אוכפת מנהל ומגבילה ל-type 300 בלבד.
+let clTimer=null,clPicked=null;
+async function mornCall(action,body){
+  const token=await aiToken();
+  let r;
+  try{
+    r=await fetch(`${SB_URL}/functions/v1/morning-proxy`,{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`,'apikey':SB_ANON},
+      body:JSON.stringify({action,...(body||{})})});
+  }catch(e){throw new Error('אין חיבור לשרת');}
+  if(r.status===401)throw new Error('פג תוקף החיבור — התחבר מחדש בטאב המלאי');
   const d=await r.json().catch(()=>null);
-  if(!d||!d.token)throw new Error(d&&d.errorMessage?d.errorMessage:`התחברות ל-Morning נכשלה (${r.status})`);
-  mToken=d.token;mTokenAt=Date.now();return mToken;
+  if(!d)throw new Error(`שגיאת שרת (${r.status})`);
+  if(!d.ok)throw new Error(d.error||`שגיאת שרת (${r.status})`);
+  return d;
 }
 function clSearchInp(v){clearTimeout(clTimer);const q=String(v||'').trim();
   if(q.length<2){document.getElementById('QCLR').innerHTML='';return;}
@@ -2222,13 +2225,8 @@ async function clSearch(q){
   const box=document.getElementById('QCLR');
   box.innerHTML='<div style="font-size:11px;color:var(--muted);padding:5px">⏳ מחפש…</div>';
   try{
-    const token=await morningToken();
-    const r=await fetch('https://api.greeninvoice.co.il/api/v1/clients/search',{method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
-      body:JSON.stringify({page:1,pageSize:15,name:q})});
-    const d=await r.json().catch(()=>null);
-    if(!r.ok)throw new Error(d&&d.errorMessage?d.errorMessage:`שגיאת שרת (${r.status})`);
-    // צורת התשובה לא מאומתת מול החשבון עצמו, אז מקבלים גם items, גם data וגם מערך חשוף
+    const {data:d}=await mornCall('clients_search',{name:q});
+    // התשובה מאומתת כ-{items:[...]}, ובכל זאת מקבלים גם data וגם מערך חשוף
     const list=Array.isArray(d)?d:(d&&(d.items||d.data))||[];
     if(!list.length){box.innerHTML='<div style="font-size:11px;color:var(--muted);padding:5px">לא נמצא לקוח בשם הזה</div>';return;}
     box.innerHTML=list.slice(0,8).map(c=>{
@@ -2254,16 +2252,17 @@ function pickClient(c){
 function clearClient(){clPicked=null;const sel=document.getElementById('QCLSEL');sel.style.display='none';sel.innerHTML='';}
 
 async function qsend(){const n=document.getElementById('QCN')?.value||'',t=qTotals(),{trv,dp,grand}=t;if(!n||grand<=0){sQSt('er','⚠️ נא למלא שם לקוח וסכום');return;}sQSt('ld','⏳ שולח...');
-  try{const token=await morningToken();
+  try{
     const inc=qIt.filter(i=>i.name&&i.price>0).map(i=>({description:i.name,quantity:i.qty,price:pfr(i.name),vatType:0}));if(trv>0)inc.push({description:'נסיעות',quantity:1,price:trv,vatType:0});
     // type 300 = חשבון עסקה = דרישת תשלום. לא 320 (חשבונית מס/קבלה): העסק
     // הוא עוסק פטור (business.type=3) ואינו מוציא חשבונית מס כלל, וגם 320 מדווח
     // כסף שכבר התקבל — זה ההפך מדרישה. 114 המסמכים בחשבון: 300, 400 ו-10 בלבד.
-    const pl={description:document.getElementById('QET')?.value||'שירותי בלונים',type:300,lang:'he',currency:'ILS',vatType:0,discount:dp||0,client:clPicked&&clPicked.id
+    // השרת קובע lang/currency/vatType ואוכף type 300 — לא שולחים אותם מכאן
+    const pl={description:document.getElementById('QET')?.value||'שירותי בלונים',type:300,discount:dp||0,client:clPicked&&clPicked.id
       ? {id:clPicked.id,name:n,phones:document.getElementById('QCP')?.value?[{phone:document.getElementById('QCP').value}]:[]}
       : {name:n,phones:document.getElementById('QCP')?.value?[{phone:document.getElementById('QCP').value}]:[],add:true},income:inc,remarks:"תשלום ב-Bit / Paybox / צ'ק\nהושעיה אמן בלונים | 050-5918734"};
-    const dr=await fetch('https://api.greeninvoice.co.il/api/v1/documents',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify(pl)});const doc=await dr.json();
-    if(doc.id){sQSt('ok',`✅ נשלח! מסמך: ${doc.number||doc.id}`);saveQuote(false);}else sQSt('er',`❌ ${doc.message||JSON.stringify(doc)}`);}
+    const {doc}=await mornCall('document_create',{payload:pl});
+    sQSt('ok',`✅ נשלח! מסמך: ${doc.number||doc.id}`);saveQuote(false);}
   catch(e){sQSt('er',`❌ ${e.message}`);}}
 function sQSt(type,msg){const el=document.getElementById('QIST');el.className=`st ${type}`;el.textContent=msg;el.style.display='block';}
 async function qparse(){
