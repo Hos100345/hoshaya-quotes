@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>מלאי סובלימציה</title>
+<style>
+:root{--bg:#f4f1ec;--card:#fff;--ink:#1d2433;--mute:#6b7280;--acc:#1f6f5c;--acc2:#e9f4f0;--bad:#b42318;--badbg:#fdecea;--warn:#b54708;--warnbg:#fff4e5;--line:#e3ded5}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:16px}
+header{background:var(--acc);color:#fff;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5}
+header h1{margin:0;font-size:18px}
+header small{opacity:.85;font-size:12px;display:block}
+header button{background:rgba(255,255,255,.18);color:#fff;border:0;border-radius:8px;padding:6px 10px;font-size:13px}
+nav{display:flex;gap:6px;padding:8px;overflow-x:auto;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:52px;z-index:4}
+nav button{flex:0 0 auto;border:1px solid var(--line);background:#fff;border-radius:20px;padding:8px 14px;font-size:15px}
+nav button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+main{padding:12px;max-width:760px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+button.pri{background:var(--acc);color:#fff;border:0;border-radius:10px;padding:12px 16px;font-size:16px;font-weight:600}
+button.sec{background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:15px}
+button.dng{background:var(--bad);color:#fff;border:0;border-radius:10px;padding:10px 14px;font-size:15px}
+input,select,textarea{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;font-size:16px;background:#fff;font-family:inherit}
+label{display:block;font-size:13px;color:var(--mute);margin:8px 0 3px}
+.row{display:flex;gap:8px;align-items:center}
+.row>*{flex:1}
+.msg{padding:10px;border-radius:10px;margin:8px 0;font-size:14px}
+.msg.ok{background:var(--acc2);color:#14513f}.msg.er{background:var(--badbg);color:var(--bad)}.msg.wn{background:var(--warnbg);color:var(--warn)}
+#reader{width:100%;max-width:420px;margin:8px auto;border-radius:12px;overflow:hidden}
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{flex:1;padding:12px;border:0;background:#fff;font-size:16px}
+.seg button.on.out{background:var(--bad);color:#fff}.seg button.on.in{background:var(--acc);color:#fff}
+.big{text-align:center;padding:18px 10px}
+.big .nm{font-size:20px;font-weight:700}
+.big .q{font-size:54px;font-weight:800;line-height:1.1;margin:6px 0}
+.item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.item:last-child{border-bottom:0}
+.item .t{font-weight:600}.item .s{font-size:12px;color:var(--mute)}
+.qty{min-width:52px;text-align:center;font-weight:800;font-size:20px;border-radius:10px;padding:4px 8px;background:var(--acc2)}
+.qty.low{background:var(--warnbg);color:var(--warn)}.qty.zero{background:var(--badbg);color:var(--bad)}
+.hide{display:none!important}
+.pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;background:#eee;color:#555;margin-inline-end:4px}
+#labels{display:none}
+@media print{
+  body{background:#fff}header,nav,main>*:not(#labelsWrap),.noprint{display:none!important}
+  #labelsWrap{display:block!important}
+  .lab{break-inside:avoid}
+}
+#labelsWrap{display:none}
+.labgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.lab{border:1px dashed #999;padding:6px;text-align:center;font-size:11px;background:#fff}
+.lab svg{width:100%;height:46px}
+.lab .n{height:28px;overflow:hidden;line-height:14px}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>מלאי סובלימציה</h1><small id="who"></small></div>
+  <button id="logout" class="hide">יציאה</button>
+</header>
+
+<main id="login">
+  <div class="card">
+    <p><b>כניסה לעובדים</b><br>מזינים את כתובת המייל, מקבלים קישור, ולוחצים עליו.</p>
+    <label for="em">מייל</label>
+    <input id="em" type="email" inputmode="email" autocomplete="email" placeholder="name@gmail.com">
+    <p><button class="pri" id="send" style="width:100%">שלח לי קישור כניסה</button></p>
+    <div id="loginMsg"></div>
+  </div>
+</main>
+
+<nav id="tabs" class="hide">
+  <button data-t="scan" class="on">סריקה</button>
+  <button data-t="stock">מלאי</button>
+  <button data-t="low">חסרים</button>
+  <button data-t="log" class="own hide">תנועות</button>
+  <button data-t="labels" class="own hide">מדבקות</button>
+  <button data-t="staff" class="own hide">עובדים</button>
+</nav>
+
+<main id="app" class="hide">
+  <section id="t-scan">
+    <div class="seg" id="mode">
+      <button class="on out" data-d="-1">הוצאה מהמלאי</button>
+      <button data-d="1" class="in">הוספה למלאי</button>
+    </div>
+    <div class="card" style="margin-top:10px">
+      <label for="code">סורק USB או הקלדה ידנית של ברקוד</label>
+      <div class="row"><input id="code" inputmode="text" autocomplete="off" placeholder="סרוק או הקלד מספר פריט"><button class="pri" id="go" style="flex:0 0 90px">אישור</button></div>
+      <p><button class="sec" id="cam" style="width:100%">📷 פתח מצלמה לסריקה</button></p>
+      <div id="reader"></div>
+    </div>
+    <div id="scanRes"></div>
+  </section>
+
+  <section id="t-stock" class="hide">
+    <div class="card">
+      <input id="q" placeholder="חיפוש לפי שם או מספר פריט">
+      <label for="cat">קטגוריה</label>
+      <select id="cat"><option value="">הכל</option></select>
+    </div>
+    <div class="card" id="stockList"></div>
+    <p class="own hide"><button class="sec" id="newItem" style="width:100%">+ פריט חדש</button></p>
+  </section>
+
+  <section id="t-low" class="hide"><div class="card" id="lowList"></div></section>
+  <section id="t-log" class="hide"><div class="card" id="logList"></div></section>
+
+  <section id="t-labels" class="hide">
+    <div class="card">
+      <p>דף מדבקות ברקוד להדפסה: מדבקה אחת לכל פריט פעיל. אפשר לבחור קטגוריה.</p>
+      <select id="labCat"><option value="">כל הפריטים</option></select>
+      <p><button class="pri" id="labPrint" style="width:100%">הכן והדפס</button></p>
+    </div>
+  </section>
+
+  <section id="t-staff" class="hide">
+    <div class="card">
+      <b>עובדים עם גישה</b>
+      <div id="staffList"></div>
+      <label for="stEm">הוספת עובד (מייל)</label>
+      <input id="stEm" type="email" placeholder="worker@gmail.com">
+      <label for="stNm">שם</label>
+      <input id="stNm" placeholder="שם העובד">
+      <p><button class="pri" id="stAdd" style="width:100%">הוסף עובד</button></p>
+    </div>
+  </section>
+</main>
+
+<div id="modal" class="hide" style="position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;overflow:auto">
+  <div class="card" style="max-width:520px;margin:30px auto" id="modalBody"></div>
+</div>
+
+<div id="labelsWrap"><div class="labgrid" id="labelGrid"></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script>
+// אין כאן שום נתון עסקי. הכול נשאר ב-Supabase מאחורי הרשאות לפי מייל.
+const SB_URL='https://sccivxenkyzxolpraexf.supabase.co';
+const SB_ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjY2l2eGVua3l6eG9scHJhZXhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4MTM2MTksImV4cCI6MjA5OTM4OTYxOX0.jEDlWFJWX9oKn_aCBSD2OlRXMja9B07PJym92YXgfWw';
+const sb=supabase.createClient(SB_URL,SB_ANON,{db:{schema:'inventory'},auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'hosh_sub_auth'}});
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let items=[],priv={},isOwner=false,delta=-1,user=null,scanner=null,lastCode='',lastAt=0,lastAction=null;
+
+function msg(el,t,c){el.innerHTML=`<div class="msg ${c}">${esc(t)}</div>`}
+function beep(ok){try{const a=new (window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.frequency.value=ok?880:200;g.gain.value=.15;o.start();o.stop(a.currentTime+(ok?.12:.35));}catch(e){} if(navigator.vibrate)navigator.vibrate(ok?60:[120,60,120]);}
+
+// ── כניסה ──
+$('send').onclick=async()=>{
+  const email=$('em').value.trim().toLowerCase();
+  if(!email){msg($('loginMsg'),'נא להזין מייל','er');return}
+  $('send').disabled=true;
+  const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});
+  $('send').disabled=false;
+  if(error)msg($('loginMsg'),'לא הצלחתי לשלוח: '+error.message,'er');
+  else{localStorage.setItem('sub_last_email',email);msg($('loginMsg'),'נשלח קישור למייל. פתחו אותו מאותו מכשיר.','ok')}
+};
+$('em').value=localStorage.getItem('sub_last_email')||'';
+$('logout').onclick=async()=>{await sb.auth.signOut();location.reload()};
+
+async function start(session){
+  if(!session){$('login').classList.remove('hide');$('app').classList.add('hide');$('tabs').classList.add('hide');$('logout').classList.add('hide');return}
+  user=session.user;
+  $('who').textContent=user.email;
+  const ok=await loadAll();
+  if(!ok){
+    $('login').classList.remove('hide');$('app').classList.add('hide');$('tabs').classList.add('hide');
+    msg($('loginMsg'),'המייל '+user.email+' אינו ברשימת העובדים. בקשו מהושעיה להוסיף אתכם.','er');
+    $('logout').classList.remove('hide');return;
+  }
+  $('login').classList.add('hide');$('app').classList.remove('hide');$('tabs').classList.remove('hide');$('logout').classList.remove('hide');
+  document.querySelectorAll('.own').forEach(e=>e.classList.toggle('hide',!isOwner));
+  render();setTimeout(()=>$('code').focus(),100);
+}
+sb.auth.onAuthStateChange((_e,s)=>{ if(_e==='SIGNED_IN'||_e==='INITIAL_SESSION'||_e==='SIGNED_OUT') start(s) });
+
+async function loadAll(){
+  const r=await sb.from('sub_items').select('*').is('deleted_at',null).eq('active',true).order('category').order('name');
+  if(r.error||!r.data||!r.data.length)return false;
+  items=r.data;
+  const st=await sb.from('sub_staff').select('email,name,role,active');
+  isOwner=!st.error&&st.data&&st.data.length>0;
+  priv={};
+  if(isOwner){const p=await sb.from('sub_item_private').select('*');(p.data||[]).forEach(x=>priv[x.item_id]=x)}
+  return true;
+}
+
+// ── לשוניות ──
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x===b));
+  ['scan','stock','low','log','labels','staff'].forEach(t=>$('t-'+t).classList.toggle('hide',t!==b.dataset.t));
+  if(b.dataset.t!=='scan')stopCam();
+  if(b.dataset.t==='log')loadLog();
+  if(b.dataset.t==='staff')loadStaff();
+  if(b.dataset.t==='scan')$('code').focus();
+  render();
+});
+document.querySelectorAll('#mode button').forEach(b=>b.onclick=()=>{
+  delta=+b.dataset.d;
+  document.querySelectorAll('#mode button').forEach(x=>x.classList.toggle('on',x===b));
+  $('code').focus();
+});
+
+// ── סריקה ──
+async function doScan(code,d){
+  code=String(code||'').trim();if(!code)return;
+  const now=Date.now();
+  if(code===lastCode&&now-lastAt<2500)return;   // מניעת סריקה כפולה
+  lastCode=code;lastAt=now;
+  const {data,error}=await sb.rpc('sub_scan',{p_barcode:code,p_delta:d});
+  if(error){beep(false);msg($('scanRes'),error.message.includes('Failed')?'אין חיבור לרשת':error.message,'er');lastAction=null;return}
+  const r=Array.isArray(data)?data[0]:data;
+  beep(true);
+  lastAction={code,d};
+  const it=items.find(i=>i.id===r.id);if(it)it.qty=r.qty;
+  const low=r.qty<=r.min_qty;
+  $('scanRes').innerHTML=`<div class="card big"><div class="nm">${esc(r.name)}</div>
+    <div>${d<0?'הוצאה: 1':'נוספה: 1'} ${esc(r.unit)}</div>
+    <div class="q" style="color:${r.qty===0?'var(--bad)':low?'var(--warn)':'var(--acc)'}">${r.qty}</div>
+    <div>נשארו במלאי</div>
+    ${r.qty===0?'<div class="msg er">נגמר המלאי!</div>':low?'<div class="msg wn">מלאי נמוך — כדאי להזמין</div>':''}
+    <p><button class="sec" id="undo">ביטול הסריקה האחרונה</button></p></div>`;
+  $('undo').onclick=async()=>{lastCode='';await doScan(code,-d);lastAction=null;$('scanRes').insertAdjacentHTML('afterbegin','<div class="msg ok">הסריקה בוטלה</div>')};
+}
+$('go').onclick=()=>{doScan($('code').value,delta);$('code').value='';$('code').focus()};
+$('code').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('go').click()}});
+
+async function startCam(){
+  if(scanner)return;
+  scanner=new Html5Qrcode('reader',{formatsToSupport:[Html5QrcodeSupportedFormats.CODE_128,Html5QrcodeSupportedFormats.CODE_39,Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.QR_CODE],verbose:false});
+  try{await scanner.start({facingMode:'environment'},{fps:10,qrbox:{width:260,height:120}},txt=>doScan(txt,delta));$('cam').textContent='⏹ סגור מצלמה'}
+  catch(e){scanner=null;msg($('scanRes'),'אי אפשר לפתוח מצלמה. יש לאשר גישה למצלמה בדפדפן.','er')}
+}
+async function stopCam(){if(scanner){try{await scanner.stop();scanner.clear()}catch(e){}scanner=null;$('cam').textContent='📷 פתח מצלמה לסריקה'}}
+$('cam').onclick=()=>scanner?stopCam():startCam();
+
+// ── מלאי ──
+function qtyCls(i){return i.qty===0?'zero':i.qty<=i.min_qty?'low':''}
+function itemRow(i){
+  return `<div class="item" data-id="${i.id}" style="cursor:pointer"><div><div class="t">${esc(i.name)}</div>
+  <div class="s"><span class="pill">${esc(i.barcode)}</span>${esc(i.category)}${i.subcategory?' · '+esc(i.subcategory):''}</div></div>
+  <div class="qty ${qtyCls(i)}">${i.qty}</div></div>`;
+}
+function render(){
+  const cats=[...new Set(items.map(i=>i.category))];
+  const cur=$('cat').value;
+  $('cat').innerHTML='<option value="">הכל</option>'+cats.map(c=>`<option ${c===cur?'selected':''}>${esc(c)}</option>`).join('');
+  if($('labCat').options.length<=1)$('labCat').innerHTML='<option value="">כל הפריטים</option>'+cats.map(c=>`<option>${esc(c)}</option>`).join('');
+  const q=$('q').value.trim().toLowerCase(),c=$('cat').value;
+  const list=items.filter(i=>(!c||i.category===c)&&(!q||i.name.toLowerCase().includes(q)||i.barcode.toLowerCase().includes(q)));
+  $('stockList').innerHTML=list.length?list.map(itemRow).join(''):'לא נמצאו פריטים';
+  const low=items.filter(i=>i.kind!=='שימוש עצמי'&&i.qty<=i.min_qty).sort((a,b)=>a.qty-b.qty);
+  $('lowList').innerHTML=low.length?low.map(itemRow).join(''):'אין פריטים חסרים 👍';
+}
+$('q').oninput=render;$('cat').onchange=render;
+document.addEventListener('click',e=>{const r=e.target.closest('.item[data-id]');if(r)openItem(+r.dataset.id)});
+
+function closeModal(){$('modal').classList.add('hide')}
+function openItem(id){
+  const i=items.find(x=>x.id===id),p=priv[id]||{};
+  const own=isOwner;
+  $('modalBody').innerHTML=`<h3 style="margin-top:0">${esc(i.name)}</h3>
+  <div><span class="pill">ברקוד ${esc(i.barcode)}</span><span class="pill">${esc(i.kind)}</span></div>
+  <div class="big"><div class="q">${i.qty}</div><div>${esc(i.unit)} במלאי (מינימום ${i.min_qty})</div></div>
+  <div class="row"><button class="sec" id="m-minus">−1</button><button class="sec" id="m-plus">+1</button></div>
+  ${i.location?`<p>מיקום: ${esc(i.location)}</p>`:''}${i.notes?`<p style="color:var(--mute);font-size:14px">${esc(i.notes)}</p>`:''}
+  ${own?`<hr><label>שם</label><input id="e-name" value="${esc(i.name)}">
+  <div class="row"><div><label>ספירה בפועל</label><input id="e-qty" type="number" min="0" value="${i.qty}"></div><div><label>כמות מינימום</label><input id="e-min" type="number" min="0" value="${i.min_qty}"></div></div>
+  <label>מיקום במדף</label><input id="e-loc" value="${esc(i.location||'')}">
+  <label>הערות</label><textarea id="e-notes" rows="2">${esc(i.notes||'')}</textarea>
+  <div class="row"><div><label>עלות</label><input id="e-cost" type="number" step="0.01" value="${p.cost??''}"></div><div><label>מחיר מכירה</label><input id="e-price" type="number" step="0.01" value="${p.price??''}"></div></div>
+  <label>ספק</label><input id="e-sup" value="${esc(p.supplier||'')}">
+  <p class="row"><button class="pri" id="m-save">שמור</button><button class="dng" id="m-del" style="flex:0 0 80px">הסר</button></p>`:''}
+  <p><button class="sec" id="m-close" style="width:100%">סגור</button></p><div id="m-msg"></div>`;
+  $('modal').classList.remove('hide');
+  $('m-close').onclick=closeModal;
+  $('m-minus').onclick=async()=>{lastCode='';await doScan(i.barcode,-1);openItem(id)};
+  $('m-plus').onclick=async()=>{lastCode='';await doScan(i.barcode,1);openItem(id)};
+  if(own){
+    $('m-save').onclick=async()=>{
+      const q=parseInt($('e-qty').value,10),m=parseInt($('e-min').value,10);
+      if(!(q>=0)||!(m>=0)){msg($('m-msg'),'כמות לא תקינה','er');return}
+      const u=await sb.from('sub_items').update({name:$('e-name').value.trim(),qty:q,min_qty:m,location:$('e-loc').value.trim()||null,notes:$('e-notes').value.trim()||null,updated_by:user.email}).eq('id',id);
+      if(u.error){msg($('m-msg'),u.error.message,'er');return}
+      const num=v=>v===''?null:+v;
+      const pr=await sb.from('sub_item_private').upsert({item_id:id,supplier:$('e-sup').value.trim()||null,cost:num($('e-cost').value),price:num($('e-price').value)});
+      if(pr.error){msg($('m-msg'),pr.error.message,'er');return}
+      await loadAll();render();closeModal();
+    };
+    $('m-del').onclick=async()=>{
+      if(!confirm('להסיר את הפריט מהרשימה? (נשמר בהיסטוריה)'))return;
+      const u=await sb.from('sub_items').update({deleted_at:new Date().toISOString(),active:false,updated_by:user.email}).eq('id',id);
+      if(u.error){msg($('m-msg'),u.error.message,'er');return}
+      await loadAll();render();closeModal();
+    };
+  }
+}
+$('modal').addEventListener('click',e=>{if(e.target===$('modal'))closeModal()});
+
+$('newItem').onclick=()=>{
+  $('modalBody').innerHTML=`<h3 style="margin-top:0">פריט חדש</h3>
+  <label>שם</label><input id="n-name"><label>ברקוד / מספר פריט (ייחודי)</label><input id="n-bc">
+  <div class="row"><div><label>קטגוריה</label><input id="n-cat" list="cl" value="אחר"><datalist id="cl">${[...new Set(items.map(i=>i.category))].map(c=>`<option>${esc(c)}</option>`).join('')}</datalist></div>
+  <div><label>סוג</label><select id="n-kind"><option>מכירה</option><option>שימוש עצמי</option><option>מתכלה</option></select></div></div>
+  <div class="row"><div><label>כמות</label><input id="n-qty" type="number" min="0" value="0"></div><div><label>מינימום</label><input id="n-min" type="number" min="0" value="0"></div></div>
+  <div class="row"><div><label>עלות</label><input id="n-cost" type="number" step="0.01"></div><div><label>ספק</label><input id="n-sup"></div></div>
+  <p class="row"><button class="pri" id="n-save">הוסף</button><button class="sec" id="n-x">ביטול</button></p><div id="m-msg"></div>`;
+  $('modal').classList.remove('hide');$('n-x').onclick=closeModal;
+  $('n-save').onclick=async()=>{
+    const name=$('n-name').value.trim(),bc=$('n-bc').value.trim();
+    if(!name||!bc){msg($('m-msg'),'חובה שם וברקוד','er');return}
+    const r=await sb.from('sub_items').insert({name,barcode:bc,category:$('n-cat').value.trim()||'אחר',kind:$('n-kind').value,qty:+$('n-qty').value||0,min_qty:+$('n-min').value||0,updated_by:user.email}).select().single();
+    if(r.error){msg($('m-msg'),r.error.message.includes('duplicate')?'הברקוד כבר קיים':r.error.message,'er');return}
+    const cost=$('n-cost').value;
+    await sb.from('sub_item_private').insert({item_id:r.data.id,supplier:$('n-sup').value.trim()||null,cost:cost===''?null:+cost});
+    await loadAll();render();closeModal();
+  };
+};
+
+// ── תנועות ──
+async function loadLog(){
+  const r=await sb.from('sub_movements').select('*').order('created_at',{ascending:false}).limit(150);
+  if(r.error){$('logList').textContent=r.error.message;return}
+  const nm=Object.fromEntries(items.map(i=>[i.id,i.name]));
+  $('logList').innerHTML=r.data.map(m=>{const d=m.qty_after-m.qty_before;
+    return `<div class="item"><div><div class="t">${esc(nm[m.item_id]||('#'+m.item_id))}</div><div class="s">${esc(m.source||'')} · ${new Date(m.created_at).toLocaleString('he-IL')}</div></div>
+    <div class="qty ${d<0?'low':''}">${d>0?'+':''}${d}<div style="font-size:11px;font-weight:400">${m.qty_before}→${m.qty_after}</div></div></div>`}).join('')||'אין תנועות';
+}
+
+// ── עובדים ──
+async function loadStaff(){
+  const r=await sb.from('sub_staff').select('*').order('created_at');
+  $('staffList').innerHTML=(r.data||[]).map(s=>`<div class="item"><div><div class="t">${esc(s.name||s.email)}</div><div class="s">${esc(s.email)} · ${s.role==='owner'?'מנהל':'עובד'}${s.active?'':' · מושבת'}</div></div>
+   ${s.role==='owner'?'':`<button class="sec" data-em="${esc(s.email)}" data-act="${s.active}">${s.active?'השבת':'הפעל'}</button>`}</div>`).join('');
+}
+$('staffList').addEventListener('click',async e=>{const b=e.target.closest('button[data-em]');if(!b)return;
+  await sb.from('sub_staff').update({active:b.dataset.act!=='true'}).eq('email',b.dataset.em);loadStaff()});
+$('stAdd').onclick=async()=>{
+  const email=$('stEm').value.trim().toLowerCase();if(!email)return;
+  const r=await sb.from('sub_staff').insert({email,name:$('stNm').value.trim(),role:'staff'});
+  if(r.error){alert(r.error.message.includes('duplicate')?'המייל כבר ברשימה':r.error.message);return}
+  $('stEm').value='';$('stNm').value='';loadStaff();
+};
+
+// ── מדבקות ברקוד ──
+$('labPrint').onclick=()=>{
+  const c=$('labCat').value;
+  const list=items.filter(i=>!c||i.category===c);
+  $('labelGrid').innerHTML=list.map((i,k)=>`<div class="lab"><div class="n">${esc(i.name)}</div><svg id="bc${k}"></svg></div>`).join('');
+  list.forEach((i,k)=>{try{JsBarcode('#bc'+k,i.barcode,{format:'CODE128',displayValue:true,fontSize:14,height:40,margin:2,width:1.6})}catch(e){}});
+  $('labelsWrap').style.display='block';
+  setTimeout(()=>{window.print();$('labelsWrap').style.display=''},300);
+};
+</script>
+</body>
+</html>
