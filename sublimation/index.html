@@ -69,6 +69,8 @@ label{display:block;font-size:13px;color:var(--mute);margin:8px 0 3px}
 <main id="login">
   <div class="card">
     <p><b>כניסה לעובדים</b><br>מזינים את כתובת המייל, מקבלים קוד וקישור, ונכנסים.<br><span style="color:var(--mute);font-size:14px">עובד חדש? נכנסים עם המייל שלכם, ואז אפשר לשלוח בקשה להצטרפות. הושעיה יאשר.</span></p>
+    <label for="nm">שם מלא</label>
+    <input id="nm" autocomplete="name" placeholder="השם שלכם">
     <label for="em">מייל</label>
     <input id="em" type="email" inputmode="email" autocomplete="email" placeholder="name@gmail.com">
     <p><button class="pri" id="send" style="width:100%">שלח לי קישור כניסה</button></p>
@@ -182,8 +184,10 @@ if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(
 
 // ── כניסה ──
 $('send').onclick=async()=>{
-  const email=$('em').value.trim().toLowerCase();
-  if(!email){msg($('loginMsg'),'נא להזין מייל','er');return}
+  const email=$('em').value.trim().toLowerCase(),name=$('nm').value.trim();
+  if(name.length<2){msg($('loginMsg'),'נא לכתוב שם מלא','er');return}
+  if(!email||!email.includes('@')){msg($('loginMsg'),'נא להזין מייל תקין','er');return}
+  localStorage.setItem('sub_name',name);
   $('send').disabled=true;
   const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});
   $('send').disabled=false;
@@ -197,18 +201,20 @@ $('verify').onclick=async()=>{
   const email=$('em').value.trim().toLowerCase(),token=$('otp').value.replace(/\D/g,'');
   if(!email||token.length<6){msg($('loginMsg'),'נא להזין מייל וקוד מלא','er');return}
   $('verify').disabled=true;
-  const {error}=await sb.auth.verifyOtp({email,token,type:'email'});
+  let {error}=await sb.auth.verifyOtp({email,token,type:'email'});
+  if(error){const r2=await sb.auth.verifyOtp({email,token,type:'signup'});if(!r2.error)error=null}   // עובד חדש מקבל מייל אישור הרשמה
   $('verify').disabled=false;
   if(error)msg($('loginMsg'),'הקוד שגוי או שפג תוקפו. בקשו קוד חדש.','er');
   else localStorage.setItem('sub_last_email',email);
 };
-$('em').value=localStorage.getItem('sub_last_email')||'';
+$('em').value=localStorage.getItem('sub_last_email')||'';$('nm').value=localStorage.getItem('sub_name')||'';
 $('logout').onclick=async()=>{await sb.auth.signOut();location.reload()};
 
 function showAccess(st){
   $('login').classList.add('hide');$('app').classList.add('hide');$('tabs').classList.add('hide');$('access').classList.remove('hide');$('logout').classList.remove('hide');
   if(st==='pending')$('accBody').innerHTML='<div class="msg ok">הבקשה נשלחה וממתינה לאישור של הושעיה. אחרי האישור פותחים את הדף שוב.</div><p><button class="sec" id="accRe">בדיקה מחדש</button></p>';
   else if(st==='rejected')$('accBody').innerHTML='<div class="msg er">הבקשה לא אושרה. אפשר לפנות להושעיה.</div>';
+  else if(localStorage.getItem('sub_name')&&!showAccess._auto){showAccess._auto=1;$('accBody').innerHTML='<div class="msg ok">שולח בקשת הצטרפות...</div>';sb.rpc('sub_request_access',{p_name:localStorage.getItem('sub_name')}).then(r=>r.error?showAccess('none'):showAccess(r.data));return}
   else $('accBody').innerHTML=`<p>המייל <b>${esc(user.email)}</b> עדיין לא ברשימת העובדים. כתבו את שמכם ושלחו בקשה.</p>
     <label for="accName">שם מלא</label><input id="accName" placeholder="השם שלכם">
     <p><button class="pri" id="accGo" style="width:100%">שלח בקשה להצטרפות</button></p><div id="accMsg"></div>`;
