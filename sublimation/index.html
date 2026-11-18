@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <title>מלאי סובלימציה</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1f6f5c">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="מלאי">
 <style>
 :root{--bg:#f4f1ec;--card:#fff;--ink:#1d2433;--mute:#6b7280;--acc:#1f6f5c;--acc2:#e9f4f0;--bad:#b42318;--badbg:#fdecea;--warn:#b54708;--warnbg:#fff4e5;--line:#e3ded5}
 *{box-sizing:border-box}
@@ -56,8 +62,8 @@ label{display:block;font-size:13px;color:var(--mute);margin:8px 0 3px}
 </head>
 <body>
 <header>
-  <div><h1>מלאי סובלימציה</h1><small id="who"></small></div>
-  <button id="logout" class="hide">יציאה</button>
+  <div style="display:flex;align-items:center;gap:10px"><img src="icon-192.png" alt="" width="36" height="36" style="border-radius:8px"><div><h1>מלאי סובלימציה</h1><small id="who"></small></div></div>
+  <div class="row" style="flex:0 0 auto;gap:6px"><button id="install" class="hide">⬇ התקן אפליקציה</button><button id="logout" class="hide">יציאה</button></div>
 </header>
 
 <main id="login">
@@ -153,6 +159,18 @@ let items=[],priv={},isOwner=false,delta=-1,user=null,scanner=null,lastCode='',l
 
 function msg(el,t,c){el.innerHTML=`<div class="msg ${c}">${esc(t)}</div>`}
 function beep(ok){try{const a=new (window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.frequency.value=ok?880:200;g.gain.value=.15;o.start();o.stop(a.currentTime+(ok?.12:.35));}catch(e){} if(navigator.vibrate)navigator.vibrate(ok?60:[120,60,120]);}
+
+// ── התקנה כאפליקציה ──
+let deferredPrompt=null;
+const isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;if(!isStandalone)$('install').classList.remove('hide')});
+window.addEventListener('appinstalled',()=>{$('install').classList.add('hide');deferredPrompt=null});
+if(!isStandalone&&/iphone|ipad|ipod/i.test(navigator.userAgent))$('install').classList.remove('hide');
+$('install').onclick=async()=>{
+  if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('install').classList.add('hide')}
+  else alert('באייפון: לחצו על כפתור השיתוף בדפדפן ואז "הוסף למסך הבית". באנדרואיד: תפריט הדפדפן ואז "התקן אפליקציה".');
+};
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 
 // ── כניסה ──
 $('send').onclick=async()=>{
