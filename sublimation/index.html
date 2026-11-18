@@ -67,6 +67,7 @@ label{display:block;font-size:13px;color:var(--mute);margin:8px 0 3px}
 </header>
 
 <main id="login">
+  <div class="card hide" id="installBig" style="background:var(--acc2);text-align:center;cursor:pointer"><b>⬇ התקן כאפליקציה במסך הבית</b></div>
   <div class="card">
     <p><b>כניסה לעובדים</b><br>מזינים את כתובת המייל, מקבלים קוד וקישור, ונכנסים.</p>
     <label for="em">מייל</label>
@@ -183,13 +184,21 @@ function beep(ok){try{const a=new (window.AudioContext||window.webkitAudioContex
 // ── התקנה כאפליקציה ──
 let deferredPrompt=null;
 const isStandalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone;
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;if(!isStandalone)$('install').classList.remove('hide')});
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e});
 window.addEventListener('appinstalled',()=>{$('install').classList.add('hide');deferredPrompt=null});
-if(!isStandalone&&/iphone|ipad|ipod/i.test(navigator.userAgent))$('install').classList.remove('hide');
+if(!isStandalone){$('install').classList.remove('hide');$('installBig').classList.remove('hide')}
 $('install').onclick=async()=>{
   if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('install').classList.add('hide')}
-  else alert('באייפון: לחצו על כפתור השיתוף בדפדפן ואז "הוסף למסך הבית". באנדרואיד: תפריט הדפדפן ואז "התקן אפליקציה".');
+  else{
+    const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
+    $('modalBody').innerHTML=`<h3 style="margin-top:0">התקנה כאפליקציה</h3>`+(ios?
+      `<p>באייפון (בדפדפן Safari):</p><ol><li>לוחצים על כפתור השיתוף (ריבוע עם חץ למעלה).</li><li>בוחרים "הוסף למסך הבית".</li><li>לוחצים "הוסף".</li></ol>`:
+      `<p>באנדרואיד (בדפדפן Chrome):</p><ol><li>לוחצים על שלוש הנקודות בפינה למעלה.</li><li>בוחרים "התקן אפליקציה" או "הוסף למסך הבית".</li><li>מאשרים.</li></ol><p style="color:var(--mute);font-size:13px">אם האפשרות לא מופיעה, צריך לפתוח את הדף בכרום ולא מתוך אפליקציה אחרת (וואטסאפ וכד׳).</p>`)
+      +'<p><button class="sec" id="m-close" style="width:100%">הבנתי</button></p>';
+    $('modal').classList.remove('hide');$('m-close').onclick=closeModal;
+  }
 };
+$('installBig').onclick=()=>$('install').click();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 
 // ── הרשמת עובד חדש (בלי כניסה) ──
