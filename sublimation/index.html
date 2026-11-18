@@ -67,6 +67,11 @@ label{display:block;font-size:13px;color:var(--mute);margin:8px 0 3px}
     <input id="em" type="email" inputmode="email" autocomplete="email" placeholder="name@gmail.com">
     <p><button class="pri" id="send" style="width:100%">שלח לי קישור כניסה</button></p>
     <div id="loginMsg"></div>
+    <div id="codeBox" class="hide">
+      <label for="otp">או מקלידים כאן את הקוד שהגיע במייל</label>
+      <input id="otp" inputmode="numeric" autocomplete="one-time-code" placeholder="הקוד מהמייל" style="letter-spacing:4px;text-align:center;font-size:20px">
+      <p><button class="pri" id="verify" style="width:100%">כניסה עם קוד</button></p>
+    </div>
   </div>
 </main>
 
@@ -156,8 +161,20 @@ $('send').onclick=async()=>{
   $('send').disabled=true;
   const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});
   $('send').disabled=false;
-  if(error)msg($('loginMsg'),'לא הצלחתי לשלוח: '+error.message,'er');
-  else{localStorage.setItem('sub_last_email',email);msg($('loginMsg'),'נשלח קישור למייל. פתחו אותו מאותו מכשיר.','ok')}
+  if(error){
+    const m=/after (\d+) seconds/.exec(error.message);
+    msg($('loginMsg'),m?('אפשר לבקש שוב בעוד '+m[1]+' שניות. אם כבר ביקשתם, הקוד במייל עדיין תקף — הקלידו אותו למטה.'):('לא הצלחתי לשלוח: '+error.message),'er');
+    $('codeBox').classList.remove('hide');
+  }else{localStorage.setItem('sub_last_email',email);msg($('loginMsg'),'נשלח מייל עם קוד וקישור. אפשר ללחוץ על הקישור או להקליד כאן את הקוד.','ok');$('codeBox').classList.remove('hide');$('otp').focus()}
+};
+$('verify').onclick=async()=>{
+  const email=$('em').value.trim().toLowerCase(),token=$('otp').value.replace(/\D/g,'');
+  if(!email||token.length<6){msg($('loginMsg'),'נא להזין מייל וקוד מלא','er');return}
+  $('verify').disabled=true;
+  const {error}=await sb.auth.verifyOtp({email,token,type:'email'});
+  $('verify').disabled=false;
+  if(error)msg($('loginMsg'),'הקוד שגוי או שפג תוקפו. בקשו קוד חדש.','er');
+  else localStorage.setItem('sub_last_email',email);
 };
 $('em').value=localStorage.getItem('sub_last_email')||'';
 $('logout').onclick=async()=>{await sb.auth.signOut();location.reload()};
