@@ -198,7 +198,7 @@ $('rgGo').onclick=async()=>{
   if(name.length<2){msg($('rgMsg'),'נא לכתוב שם מלא','er');return}
   if(!email.includes('@')){msg($('rgMsg'),'נא להזין מייל תקין','er');return}
   $('rgGo').disabled=true;
-  const r=await sb.rpc('sub_public_request',{p_name:name,p_email:email});
+  const r=await sb.schema('public').rpc('sub_public_request',{p_name:name,p_email:email});
   $('rgGo').disabled=false;
   if(r.error){msg($('rgMsg'),r.error.message,'er');return}
   if(r.data==='staff')msg($('rgMsg'),'אתם כבר ברשימת העובדים. אפשר להיכנס למעלה.','ok');
