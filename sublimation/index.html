@@ -68,9 +68,7 @@ label{display:block;font-size:13px;color:var(--mute);margin:8px 0 3px}
 
 <main id="login">
   <div class="card">
-    <p><b>כניסה לעובדים</b><br>מזינים את כתובת המייל, מקבלים קוד וקישור, ונכנסים.<br><span style="color:var(--mute);font-size:14px">עובד חדש? נכנסים עם המייל שלכם, ואז אפשר לשלוח בקשה להצטרפות. הושעיה יאשר.</span></p>
-    <label for="nm">שם מלא</label>
-    <input id="nm" autocomplete="name" placeholder="השם שלכם">
+    <p><b>כניסה לעובדים</b><br>מזינים את כתובת המייל, מקבלים קוד וקישור, ונכנסים.</p>
     <label for="em">מייל</label>
     <input id="em" type="email" inputmode="email" autocomplete="email" placeholder="name@gmail.com">
     <p><button class="pri" id="send" style="width:100%">שלח לי קישור כניסה</button></p>
@@ -80,6 +78,18 @@ label{display:block;font-size:13px;color:var(--mute);margin:8px 0 3px}
       <input id="otp" inputmode="numeric" autocomplete="one-time-code" placeholder="הקוד מהמייל" style="letter-spacing:4px;text-align:center;font-size:20px">
       <p><button class="pri" id="verify" style="width:100%">כניסה עם קוד</button></p>
     </div>
+  </div>
+</main>
+
+<main id="register">
+  <div class="card">
+    <p><b>עובד חדש?</b><br><span style="color:var(--mute);font-size:14px">כתבו שם ומייל. הושעיה יקבל הודעה ויוסיף אתכם, ואז תוכלו להיכנס.</span></p>
+    <label for="rgName">שם מלא</label>
+    <input id="rgName" autocomplete="name" placeholder="השם שלכם">
+    <label for="rgEm">מייל</label>
+    <input id="rgEm" type="email" inputmode="email" autocomplete="email" placeholder="name@gmail.com">
+    <p><button class="pri" id="rgGo" style="width:100%">שלח בקשה להצטרפות</button></p>
+    <div id="rgMsg"></div>
   </div>
 </main>
 
@@ -182,12 +192,25 @@ $('install').onclick=async()=>{
 };
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 
+// ── הרשמת עובד חדש (בלי כניסה) ──
+$('rgGo').onclick=async()=>{
+  const name=$('rgName').value.trim(),email=$('rgEm').value.trim().toLowerCase();
+  if(name.length<2){msg($('rgMsg'),'נא לכתוב שם מלא','er');return}
+  if(!email.includes('@')){msg($('rgMsg'),'נא להזין מייל תקין','er');return}
+  $('rgGo').disabled=true;
+  const r=await sb.rpc('sub_public_request',{p_name:name,p_email:email});
+  $('rgGo').disabled=false;
+  if(r.error){msg($('rgMsg'),r.error.message,'er');return}
+  if(r.data==='staff')msg($('rgMsg'),'אתם כבר ברשימת העובדים. אפשר להיכנס למעלה.','ok');
+  else if(r.data==='rejected')msg($('rgMsg'),'הבקשה לא אושרה. אפשר לפנות להושעיה.','er');
+  else if(r.data==='approved')msg($('rgMsg'),'הבקשה כבר אושרה. אפשר להיכנס למעלה.','ok');
+  else msg($('rgMsg'),'הבקשה נשלחה להושעיה. כשתאושרו תוכלו להיכנס.','ok');
+};
+
 // ── כניסה ──
 $('send').onclick=async()=>{
-  const email=$('em').value.trim().toLowerCase(),name=$('nm').value.trim();
-  if(name.length<2){msg($('loginMsg'),'נא לכתוב שם מלא','er');return}
+  const email=$('em').value.trim().toLowerCase();
   if(!email||!email.includes('@')){msg($('loginMsg'),'נא להזין מייל תקין','er');return}
-  localStorage.setItem('sub_name',name);
   $('send').disabled=true;
   const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}});
   $('send').disabled=false;
@@ -207,11 +230,11 @@ $('verify').onclick=async()=>{
   if(error)msg($('loginMsg'),'הקוד שגוי או שפג תוקפו. בקשו קוד חדש.','er');
   else localStorage.setItem('sub_last_email',email);
 };
-$('em').value=localStorage.getItem('sub_last_email')||'';$('nm').value=localStorage.getItem('sub_name')||'';
+$('em').value=localStorage.getItem('sub_last_email')||'';
 $('logout').onclick=async()=>{await sb.auth.signOut();location.reload()};
 
 function showAccess(st){
-  $('login').classList.add('hide');$('app').classList.add('hide');$('tabs').classList.add('hide');$('access').classList.remove('hide');$('logout').classList.remove('hide');
+  $('login').classList.add('hide');$('register').classList.add('hide');$('app').classList.add('hide');$('tabs').classList.add('hide');$('access').classList.remove('hide');$('logout').classList.remove('hide');
   if(st==='pending')$('accBody').innerHTML='<div class="msg ok">הבקשה נשלחה וממתינה לאישור של הושעיה. אחרי האישור פותחים את הדף שוב.</div><p><button class="sec" id="accRe">בדיקה מחדש</button></p>';
   else if(st==='rejected')$('accBody').innerHTML='<div class="msg er">הבקשה לא אושרה. אפשר לפנות להושעיה.</div>';
   else if(localStorage.getItem('sub_name')&&!showAccess._auto){showAccess._auto=1;$('accBody').innerHTML='<div class="msg ok">שולח בקשת הצטרפות...</div>';sb.rpc('sub_request_access',{p_name:localStorage.getItem('sub_name')}).then(r=>r.error?showAccess('none'):showAccess(r.data));return}
@@ -228,7 +251,7 @@ function showAccess(st){
   };
 }
 async function start(session){
-  if(!session){$('login').classList.remove('hide');$('access').classList.add('hide');$('app').classList.add('hide');$('tabs').classList.add('hide');$('logout').classList.add('hide');return}
+  if(!session){$('login').classList.remove('hide');$('register').classList.remove('hide');$('access').classList.add('hide');$('app').classList.add('hide');$('tabs').classList.add('hide');$('logout').classList.add('hide');return}
   user=session.user;
   $('who').textContent=user.email;
   const stt=await sb.rpc('sub_my_status');
@@ -236,7 +259,7 @@ async function start(session){
   if(stt.data!=='staff'){showAccess(stt.data);return}
   const ok=await loadAll();
   if(!ok){msg($('loginMsg'),'לא הצלחתי לטעון את המלאי','er');return}
-  $('login').classList.add('hide');$('access').classList.add('hide');$('app').classList.remove('hide');$('tabs').classList.remove('hide');$('logout').classList.remove('hide');
+  $('login').classList.add('hide');$('register').classList.add('hide');$('access').classList.add('hide');$('app').classList.remove('hide');$('tabs').classList.remove('hide');$('logout').classList.remove('hide');
   document.querySelectorAll('.own').forEach(e=>e.classList.remove('hide'));
   document.querySelectorAll('.boss').forEach(e=>e.classList.toggle('hide',!isOwner));
   if(isOwner)refreshReqBadge();
