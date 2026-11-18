@@ -68,7 +68,7 @@ label{display:block;font-size:13px;color:var(--mute);margin:8px 0 3px}
 
 <main id="login">
   <div class="card">
-    <p><b>כניסה לעובדים</b><br>מזינים את כתובת המייל, מקבלים קישור, ולוחצים עליו.</p>
+    <p><b>כניסה לעובדים</b><br>מזינים את כתובת המייל, מקבלים קוד וקישור, ונכנסים.<br><span style="color:var(--mute);font-size:14px">עובד חדש? נכנסים עם המייל שלכם, ואז אפשר לשלוח בקשה להצטרפות. הושעיה יאשר.</span></p>
     <label for="em">מייל</label>
     <input id="em" type="email" inputmode="email" autocomplete="email" placeholder="name@gmail.com">
     <p><button class="pri" id="send" style="width:100%">שלח לי קישור כניסה</button></p>
@@ -81,13 +81,20 @@ label{display:block;font-size:13px;color:var(--mute);margin:8px 0 3px}
   </div>
 </main>
 
+<main id="access" class="hide">
+  <div class="card">
+    <h3 style="margin-top:0">בקשת גישה למלאי</h3>
+    <div id="accBody"></div>
+  </div>
+</main>
+
 <nav id="tabs" class="hide">
   <button data-t="scan" class="on">סריקה</button>
   <button data-t="stock">מלאי</button>
   <button data-t="low">חסרים</button>
   <button data-t="log" class="own hide">תנועות</button>
   <button data-t="labels" class="own hide">מדבקות</button>
-  <button data-t="staff" class="own hide">עובדים</button>
+  <button data-t="staff" class="boss hide">עובדים <span id="reqBadge" class="pill hide" style="background:var(--bad);color:#fff"></span></button>
 </nav>
 
 <main id="app" class="hide">
@@ -127,6 +134,7 @@ label{display:block;font-size:13px;color:var(--mute);margin:8px 0 3px}
   </section>
 
   <section id="t-staff" class="hide">
+    <div class="card" id="reqCard"><b>בקשות הצטרפות</b><div id="reqList"></div></div>
     <div class="card">
       <b>עובדים עם גישה</b>
       <div id="staffList"></div>
@@ -197,30 +205,47 @@ $('verify').onclick=async()=>{
 $('em').value=localStorage.getItem('sub_last_email')||'';
 $('logout').onclick=async()=>{await sb.auth.signOut();location.reload()};
 
+function showAccess(st){
+  $('login').classList.add('hide');$('app').classList.add('hide');$('tabs').classList.add('hide');$('access').classList.remove('hide');$('logout').classList.remove('hide');
+  if(st==='pending')$('accBody').innerHTML='<div class="msg ok">הבקשה נשלחה וממתינה לאישור של הושעיה. אחרי האישור פותחים את הדף שוב.</div><p><button class="sec" id="accRe">בדיקה מחדש</button></p>';
+  else if(st==='rejected')$('accBody').innerHTML='<div class="msg er">הבקשה לא אושרה. אפשר לפנות להושעיה.</div>';
+  else $('accBody').innerHTML=`<p>המייל <b>${esc(user.email)}</b> עדיין לא ברשימת העובדים. כתבו את שמכם ושלחו בקשה.</p>
+    <label for="accName">שם מלא</label><input id="accName" placeholder="השם שלכם">
+    <p><button class="pri" id="accGo" style="width:100%">שלח בקשה להצטרפות</button></p><div id="accMsg"></div>`;
+  if($('accRe'))$('accRe').onclick=()=>location.reload();
+  if($('accGo'))$('accGo').onclick=async()=>{
+    const n=$('accName').value.trim();if(n.length<2){msg($('accMsg'),'נא לכתוב שם','er');return}
+    $('accGo').disabled=true;
+    const r=await sb.rpc('sub_request_access',{p_name:n});
+    if(r.error){$('accGo').disabled=false;msg($('accMsg'),r.error.message,'er');return}
+    showAccess(r.data);
+  };
+}
 async function start(session){
-  if(!session){$('login').classList.remove('hide');$('app').classList.add('hide');$('tabs').classList.add('hide');$('logout').classList.add('hide');return}
+  if(!session){$('login').classList.remove('hide');$('access').classList.add('hide');$('app').classList.add('hide');$('tabs').classList.add('hide');$('logout').classList.add('hide');return}
   user=session.user;
   $('who').textContent=user.email;
+  const stt=await sb.rpc('sub_my_status');
+  if(stt.error){$('login').classList.remove('hide');msg($('loginMsg'),'שגיאה: '+stt.error.message,'er');return}
+  if(stt.data!=='staff'){showAccess(stt.data);return}
   const ok=await loadAll();
-  if(!ok){
-    $('login').classList.remove('hide');$('app').classList.add('hide');$('tabs').classList.add('hide');
-    msg($('loginMsg'),'המייל '+user.email+' אינו ברשימת העובדים. בקשו מהושעיה להוסיף אתכם.','er');
-    $('logout').classList.remove('hide');return;
-  }
-  $('login').classList.add('hide');$('app').classList.remove('hide');$('tabs').classList.remove('hide');$('logout').classList.remove('hide');
-  document.querySelectorAll('.own').forEach(e=>e.classList.toggle('hide',!isOwner));
+  if(!ok){msg($('loginMsg'),'לא הצלחתי לטעון את המלאי','er');return}
+  $('login').classList.add('hide');$('access').classList.add('hide');$('app').classList.remove('hide');$('tabs').classList.remove('hide');$('logout').classList.remove('hide');
+  document.querySelectorAll('.own').forEach(e=>e.classList.remove('hide'));
+  document.querySelectorAll('.boss').forEach(e=>e.classList.toggle('hide',!isOwner));
+  if(isOwner)refreshReqBadge();
   render();setTimeout(()=>$('code').focus(),100);
 }
 sb.auth.onAuthStateChange((_e,s)=>{ if(_e==='SIGNED_IN'||_e==='INITIAL_SESSION'||_e==='SIGNED_OUT') start(s) });
 
 async function loadAll(){
   const r=await sb.from('sub_items').select('*').is('deleted_at',null).eq('active',true).order('category').order('name');
-  if(r.error||!r.data||!r.data.length)return false;
+  if(r.error||!r.data)return false;
   items=r.data;
-  const st=await sb.from('sub_staff').select('email,name,role,active');
-  isOwner=!st.error&&st.data&&st.data.length>0;
-  priv={};
-  if(isOwner){const p=await sb.from('sub_item_private').select('*');(p.data||[]).forEach(x=>priv[x.item_id]=x)}
+  const st=await sb.from('sub_staff').select('email,role');
+  isOwner=!st.error&&(st.data||[]).some(x=>x.email===user.email&&x.role==='owner');
+  const p=await sb.from('sub_item_private').select('*');priv={};
+  (p.data||[]).forEach(x=>priv[x.item_id]=x);
   return true;
 }
 
@@ -230,7 +255,7 @@ document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{
   ['scan','stock','low','log','labels','staff'].forEach(t=>$('t-'+t).classList.toggle('hide',t!==b.dataset.t));
   if(b.dataset.t!=='scan')stopCam();
   if(b.dataset.t==='log')loadLog();
-  if(b.dataset.t==='staff')loadStaff();
+  if(b.dataset.t==='staff'){loadRequests();loadStaff();}
   if(b.dataset.t==='scan')$('code').focus();
   render();
 });
@@ -297,7 +322,7 @@ document.addEventListener('click',e=>{const r=e.target.closest('.item[data-id]')
 function closeModal(){$('modal').classList.add('hide')}
 function openItem(id){
   const i=items.find(x=>x.id===id),p=priv[id]||{};
-  const own=isOwner;
+  const own=true;
   $('modalBody').innerHTML=`<h3 style="margin-top:0">${esc(i.name)}</h3>
   <div><span class="pill">ברקוד ${esc(i.barcode)}</span><span class="pill">${esc(i.kind)}</span></div>
   <div class="big"><div class="q">${i.qty}</div><div>${esc(i.unit)} במלאי (מינימום ${i.min_qty})</div></div>
@@ -367,6 +392,22 @@ async function loadLog(){
 }
 
 // ── עובדים ──
+async function refreshReqBadge(){
+  const r=await sb.from('sub_requests').select('email').eq('status','pending');
+  const n=(r.data||[]).length;$('reqBadge').textContent=n;$('reqBadge').classList.toggle('hide',!n);return r.data||[];
+}
+async function loadRequests(){
+  await refreshReqBadge();
+  const r=await sb.from('sub_requests').select('*').eq('status','pending').order('created_at');
+  $('reqList').innerHTML=(r.data||[]).map(q=>`<div class="item"><div><div class="t">${esc(q.name||'ללא שם')}</div><div class="s">${esc(q.email)}</div></div>
+   <div class="row" style="flex:0 0 auto"><button class="pri" data-rq="${esc(q.email)}" data-ok="1">אשר</button><button class="sec" data-rq="${esc(q.email)}" data-ok="0">דחה</button></div></div>`).join('')||'<div style="color:var(--mute)">אין בקשות ממתינות</div>';
+}
+$('reqList').addEventListener('click',async e=>{
+  const b=e.target.closest('button[data-rq]');if(!b)return;b.disabled=true;
+  const r=await sb.rpc('sub_approve',{p_email:b.dataset.rq,p_ok:b.dataset.ok==='1'});
+  if(r.error)alert(r.error.message);
+  loadRequests();loadStaff();
+});
 async function loadStaff(){
   const r=await sb.from('sub_staff').select('*').order('created_at');
   $('staffList').innerHTML=(r.data||[]).map(s=>`<div class="item"><div><div class="t">${esc(s.name||s.email)}</div><div class="s">${esc(s.email)} · ${s.role==='owner'?'מנהל':'עובד'}${s.active?'':' · מושבת'}</div></div>
