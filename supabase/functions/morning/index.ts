@@ -17,14 +17,18 @@ let token: string | null = null, tokenAt = 0;
 async function morningToken(): Promise<string> {
   // הטוקן של Morning תקף כשעה; שומרים 50 דקות בזיכרון של המופע
   if (token && Date.now() - tokenAt < 50 * 60 * 1000) return token;
-  const id = Deno.env.get("MORNING_ID"), secret = Deno.env.get("MORNING_SECRET");
+  // trim: הדבקה בדשבורד מוסיפה לפעמים רווח/שורה ריקה בסוף — Morning מחזיר אז 404
+  const id = Deno.env.get("MORNING_ID")?.trim(), secret = Deno.env.get("MORNING_SECRET")?.trim();
   if (!id || !secret) throw Object.assign(new Error("המפתח של Morning עוד לא הוגדר בשרת"), { status: 503 });
   const r = await fetch(`${API}/account/token`, {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ id, secret }), signal: AbortSignal.timeout(15000),
   });
   const d = await r.json().catch(() => null);
-  if (!d?.token) throw Object.assign(new Error(d?.errorMessage || `התחברות ל-Morning נכשלה (${r.status})`), { status: 502 });
+  if (!d?.token) {
+    console.log("MORNING_TOKEN_FAIL", r.status, d?.errorCode ?? "", d?.errorMessage ?? "");
+    throw Object.assign(new Error((d?.errorMessage ? d.errorMessage + " · " : "") + `התחברות ל-Morning נכשלה (${r.status}${d?.errorCode ? ", קוד " + d.errorCode : ""})`), { status: 502 });
+  }
   token = d.token; tokenAt = Date.now();
   return token!;
 }
