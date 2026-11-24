@@ -374,3 +374,11 @@ curl -X POST https://sccivxenkyzxolpraexf.supabase.co/functions/v1/ai-gateway \
 
 הלוח מקבל PNG בלבד, אז התמונה מומרת דרך canvas. HEIC לא נפתח בכרום ולכן
 ההעתקה תיכשל שם, והמסך יפנה למסלול השיתוף.
+
+## Morning — דרך השרת בלבד (24/11/2026)
+המפתח של Morning **לא נמצא בדפדפן ולא בגיט**. מערכת הניהול קוראת ל-Edge Function `morning`
+(`supabase/functions/morning/index.ts`, `verify_jwt=true`), שמחזיקה את המפתח כ-Supabase secrets:
+`MORNING_ID` (מזהה המפתח) ו-`MORNING_SECRET` (הסוד). הרשאה: משתמש מחובר שהמייל שלו ב-`ADMIN_EMAILS`
+(אותה התחברות כמו בלשונית המלאי). פעולות מותרות בלבד: `status`, `clients.search`, `documents.create`
+(רק type 300 בשקלים). מפתח שנחשף בעבר בקוד בוטל — מפתח חדש נכנס רק ל-secrets.
+⚠️ פריסה = `deploy_edge_function` ידני; מיזוג לא מעלה אותה.
