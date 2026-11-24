@@ -1114,10 +1114,7 @@ async function transcribeRec(){
   }catch(e){sRecSt('er',`❌ ${e.message}`);}
   document.getElementById('RECBTN').disabled=false;}
 function sRecSt(type,msg){const el=document.getElementById('RECST');el.className=`st ${type}`;el.textContent=msg;el.style.display='block';}
-function rParsedRec(p){document.getElementById('RECPD').style.display='block';let h='';if(p.clientName)h+=`👤 <b>שם:</b> ${p.clientName}<br>`;if(p.clientPhone)h+=`📞 <b>טלפון:</b> ${p.clientPhone}<br>`;if(p.eventType)h+=`🎉 <b>אירוע:</b> ${p.eventType}<br>`;if(validDate(p.eventDate))h+=`📅 <b>תאריך:</b> ${new Date(p.eventDate).toLocaleDateString('he-IL')}<br>`;if(p.distanceKm>0)h+=`🚗 ${p.distanceKm} ק"מ<br>`;if(p.isLocal)h+=`🏘️ <b>תושב/ת יישוב</b> — הנחה ${LOCAL_PCT}% על עיצוב אירועים<br>`;h+='<br>'+p.items.map(i=>PL[i.name]?`• ${i.name} × ${i.qty} — <b style="color:var(--gold)">${i.price}₪</b>`:`• ⚠️ ${i.name} × ${i.qty} — <span style="color:var(--pink)">לא במחירון</span>`).join('<br>');const sub=p.items.reduce((s,i)=>s+i.price,0);
-  const evSub=p.items.filter(i=>!isStore(i.name)).reduce((s,i)=>s+i.price,0);
-  const disc=p.isLocal?Math.round(evSub*LOCAL_PCT/100):0;
-  const tot=sub-disc+Math.round((p.distanceKm||0)*2*TRAVEL_RATE);h+=`<br><br><span style="color:var(--gold);font-weight:700">💰 סה"כ: ${tot}₪</span>`;document.getElementById('RECPDTXT').innerHTML=h;}
+function rParsedRec(p){document.getElementById('RECPD').style.display='block';let h='';if(p.clientName)h+=`👤 <b>שם:</b> ${p.clientName}<br>`;if(p.clientPhone)h+=`📞 <b>טלפון:</b> ${p.clientPhone}<br>`;if(p.eventType)h+=`🎉 <b>אירוע:</b> ${p.eventType}<br>`;if(validDate(p.eventDate))h+=`📅 <b>תאריך:</b> ${new Date(p.eventDate).toLocaleDateString('he-IL')}<br>`;if(p.distanceKm>0)h+=`🚗 ${p.distanceKm} ק"מ<br>`;if(p.isLocal)h+=`🏘️ <b>תושב/ת יישוב</b> — הנחה ${LOCAL_PCT}% על עיצוב אירועים<br>`;h+='<br>'+p.items.map(i=>PL[i.name]?`• ${i.name} × ${i.qty} — <b style="color:var(--gold)">${i.price}₪</b>`:`• ⚠️ ${i.name} × ${i.qty} — <span style="color:var(--pink)">לא במחירון</span>`).join('<br>');const tot=parsedTotal(p);h+=`<br><br><span style="color:var(--gold);font-weight:700">💰 סה"כ: ${tot}₪</span>`;document.getElementById('RECPDTXT').innerHTML=h;}
 function recApply(){if(!recParsed)return;pQ=recParsed;qapply();}
 
 // ── INVENTORY — מקור האמת הוא Supabase, לא localStorage ──
@@ -2086,16 +2083,20 @@ function pfr(n){const p=PL[n];return p?p.b:0;}
 function isStore(n){return !!(PL[n]&&PL[n].c===STORE);}
 // חישוב אחד לכל הצרכנים — מסך, הודעת וואטסאפ, דרישת תשלום ויומן.
 // קודם כל אחד חישב לעצמו, ותעריף נסיעות או בסיס הנחה שהשתנו פילגו ביניהם.
-function qTotals(){
+// calcTotals טהורה: גם תצוגת הניתוח (rParsed/rParsedRec) קוראת לה, כדי שהסכום
+// שמוצג לפני "החל הצעה" יהיה בדיוק הסכום שיופיע אחריה.
+function calcTotals(items,isLocal,dist,dp){
   let tot=0,ev=0;
-  qIt.forEach(it=>{const pr=it.price||0;tot+=pr;if(it.name&&!isStore(it.name))ev+=pr;});
-  const dist=+(document.getElementById('QDIST')?.value||0)||0;
+  (items||[]).forEach(it=>{const pr=it.price||0;tot+=pr;if(it.name&&!isStore(it.name))ev+=pr;});
+  dist=+dist||0;dp=+dp||0;
   const trv=Math.round(dist*2*TRAVEL_RATE);
-  const dp=+(document.getElementById('QDISC')?.value||0)||0;
   // הנחת תושב חלה על עיצוב אירועים בלבד. הנחה ידנית בלי מצב תושב — על הכול.
-  const dbase=qLoc?ev:tot;
+  const dbase=isLocal?ev:tot;
   const da=Math.round(dbase*dp/100);
   return{tot,ev,dist,trv,dp,da,grand:tot-da+trv};
+}
+function qTotals(){
+  return calcTotals(qIt,qLoc,document.getElementById('QDIST')?.value||0,document.getElementById('QDISC')?.value||0);
 }
 function qRowHTML(it){
   return `<select style="flex:2;background:transparent;border:none;color:var(--text);font-family:'Heebo',sans-serif;font-size:11px;outline:none;direction:rtl" onchange="qun(${it.id},this.value)"><option value="">בחר פריט...</option>${plOptions(it.name||'')}</select>`
@@ -2253,13 +2254,26 @@ function pickClient(c){
 }
 function clearClient(){clPicked=null;const sel=document.getElementById('QCLSEL');sel.style.display='none';sel.innerHTML='';}
 
+// שורות המסמך ב-Morning נבנות מאותם פריטים ש-qTotals סוכם (it.price = סה"כ שורה),
+// וההנחה נשלחת כסכום (t.da) ולא כאחוז על כל המסמך: אחוז היה חל גם על החנות
+// ועל הנסיעות, וסכום המסמך היה יוצא שונה מההצעה שהלקוח קיבל.
+function morningIncome(items,trv){
+  const inc=(items||[]).filter(i=>i.name&&(i.price||0)>0).map(i=>{
+    const q=i.qty||1,u=i.price/q;
+    // מחיר יחידה לא שלם (מחיר שורה שאינו מתחלק בכמות) — שורה אחת בסכום המלא
+    return Number.isInteger(u*100)?{description:i.name,quantity:q,price:u,vatType:0}
+      :{description:`${i.name} × ${q}`,quantity:1,price:i.price,vatType:0};
+  });
+  if(trv>0)inc.push({description:'נסיעות',quantity:1,price:trv,vatType:0});
+  return inc;
+}
 async function qsend(){const n=document.getElementById('QCN')?.value||'',t=qTotals(),{trv,dp,grand}=t;if(!n||grand<=0){sQSt('er','⚠️ נא למלא שם לקוח וסכום');return;}sQSt('ld','⏳ שולח...');
   try{const token=await morningToken();
-    const inc=qIt.filter(i=>i.name&&i.price>0).map(i=>({description:i.name,quantity:i.qty,price:pfr(i.name),vatType:0}));if(trv>0)inc.push({description:'נסיעות',quantity:1,price:trv,vatType:0});
+    const inc=morningIncome(qIt,trv);
     // type 300 = חשבון עסקה = דרישת תשלום. לא 320 (חשבונית מס/קבלה): העסק
     // הוא עוסק פטור (business.type=3) ואינו מוציא חשבונית מס כלל, וגם 320 מדווח
     // כסף שכבר התקבל — זה ההפך מדרישה. 114 המסמכים בחשבון: 300, 400 ו-10 בלבד.
-    const pl={description:document.getElementById('QET')?.value||'שירותי בלונים',type:300,lang:'he',currency:'ILS',vatType:0,discount:dp||0,client:clPicked&&clPicked.id
+    const pl={description:document.getElementById('QET')?.value||'שירותי בלונים',type:300,lang:'he',currency:'ILS',vatType:0,...(t.da>0?{discount:{amount:t.da,type:'sum'}}:{}),client:clPicked&&clPicked.id
       ? {id:clPicked.id,name:n,phones:document.getElementById('QCP')?.value?[{phone:document.getElementById('QCP').value}]:[]}
       : {name:n,phones:document.getElementById('QCP')?.value?[{phone:document.getElementById('QCP').value}]:[],add:true},income:inc,remarks:"תשלום ב-Bit / Paybox / צ'ק\nהושעיה אמן בלונים | 050-5918734"};
     const dr=await fetch('https://api.greeninvoice.co.il/api/v1/documents',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify(pl)});const doc=await dr.json();
@@ -2277,19 +2291,22 @@ async function qparse(){
     rParsed(pQ);
   }catch(e){sPSt('er',`❌ ${e.message}`);}}
 function sPSt(type,msg){const el=document.getElementById('QPST');el.className=`st ${type}`;el.textContent=msg;el.style.display='block';}
+// סה"כ לניתוח AI — אותו חישוב שיחול אחרי qapply (תושב ⇐ LOCAL_PCT, אחרת בלי הנחה)
+function parsedTotal(p){return calcTotals(p.items,p.isLocal,p.distanceKm||0,p.isLocal?LOCAL_PCT:0).grand;}
 function rParsed(p){document.getElementById('QPD').style.display='block';let h='';if(p.clientName)h+=`👤 <b>שם:</b> ${p.clientName}<br>`;if(p.clientPhone)h+=`📞 <b>טלפון:</b> ${p.clientPhone}<br>`;if(p.eventType)h+=`🎉 <b>אירוע:</b> ${p.eventType}<br>`;if(validDate(p.eventDate))h+=`📅 <b>תאריך:</b> ${new Date(p.eventDate).toLocaleDateString('he-IL')}<br>`;if(p.distanceKm>0)h+=`🚗 ${p.distanceKm} ק"מ<br>`;if(p.isLocal)h+=`🏘️ <b>תושב/ת יישוב</b> — הנחה ${LOCAL_PCT}% על עיצוב אירועים<br>`;
   const unknown=p.items.filter(i=>!PL[i.name]);
   h+='<br>'+p.items.map(i=>PL[i.name]
       ?`• ${i.name} × ${i.qty} — <b style="color:var(--gold)">${i.price}₪</b>`
       :`• ⚠️ ${i.name} × ${i.qty} — <span style="color:var(--pink)">לא במחירון</span>`).join('<br>');
-  const sub=p.items.reduce((s,i)=>s+i.price,0);
-  const evSub=p.items.filter(i=>!isStore(i.name)).reduce((s,i)=>s+i.price,0);
-  const disc=p.isLocal?Math.round(evSub*LOCAL_PCT/100):0;
-  const tot=sub-disc+Math.round((p.distanceKm||0)*2*TRAVEL_RATE);
+  const tot=parsedTotal(p);
   h+=`<br><br><span style="color:var(--gold);font-weight:700">💰 סה"כ: ${tot}₪</span>`;
   if(unknown.length)h+=`<br><span style="color:var(--pink);font-size:11px">⚠️ ${unknown.length} פריטים לא זוהו במחירון — יש לבחור אותם ידנית</span>`;
   if(p.notes)h+=`<br>📝 ${p.notes}`;document.getElementById('QPDTXT').innerHTML=h;}
-function qapply(){if(!pQ)return;if(pQ.clientName)document.getElementById('QCN').value=pQ.clientName;if(pQ.clientPhone)document.getElementById('QCP').value=pQ.clientPhone;if(pQ.eventType)document.getElementById('QET').value=pQ.eventType;if(validDate(pQ.eventDate))document.getElementById('QED').value=pQ.eventDate;if(pQ.distanceKm)document.getElementById('QDIST').value=pQ.distanceKm;qIt=[];document.getElementById('QITEMS').innerHTML='';pQ.items.forEach(it=>{qIt.push(it);qAddRow(it);});
+// כל השדות נכתבים תמיד: כתיבה מותנית השאירה שם/מרחק מההצעה הקודמת
+// (מרחק 30 נשאר → 120₪ נסיעות שלא היו בשיחה)
+function qapply(){if(!pQ)return;const sv=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v;};
+  sv('QCN',pQ.clientName||'');sv('QCP',pQ.clientPhone||'');sv('QET',pQ.eventType||'');sv('QED',validDate(pQ.eventDate)?pQ.eventDate:'');sv('QDIST',+pQ.distanceKm||0);
+  clearClient();qIt=[];document.getElementById('QITEMS').innerHTML='';pQ.items.forEach(it=>{qIt.push(it);qAddRow(it);});
   // חייב לרוץ אחרי שהפריטים נכנסו: setQLoc מתמחר אותם מחדש לפי מצב התושב
   setQLoc(pQ.isLocal);
   curQuoteId=null;
@@ -2463,7 +2480,7 @@ function copyMissing(){
 // אותן קטגוריות כמו באתר (js/main.js catConfig) ובדף gallery-admin.html.
 const SG_FN=`${SB_URL}/functions/v1/site-gallery`;
 const SG_PUB=`${SB_URL}/storage/v1/object/public/site-gallery/`;
-const SG_CATS=[['events','עיצוב אירועים'],['arch','קשת'],['hoop','חישוק'],['column','עמוד'],['numbers','מספרים'],['frame','מסגרת'],['centerpieces','מרכזי שולחן'],['garlands','גירלנדות'],['bar','בר בלונים ודמויות'],['bar-chars','דמויות של בר בלונים'],['characters','דמויות'],['event-chars','דמויות לאירועים'],['hats','כתרים וכובעים'],['rooms','עיצוב חדרים'],['printing','הדפסה על בלונים'],['photocorner','פינת צילום'],['workshops','סדנאות'],['satisfied','לקוחות מרוצים']];
+const SG_CATS=[['events','עיצוב אירועים'],['arch','קשת'],['hoop','חישוק'],['column','עמוד'],['numbers','מספרים'],['frame','מסגרת'],['centerpieces','מרכזי שולחן'],['garlands','גירלנדות'],['bar','בר בלונים ודמויות'],['bar-chars','דמויות של בר בלונים'],['characters','דמויות'],['event-chars','דמויות של עיצוב אירועים'],['hats','כתרים / כובעים'],['rooms','עיצוב חדרים'],['printing','הדפסה על בלונים'],['photocorner','פינת צילום'],['workshops','סדנאות'],['satisfied','לקוחות מרוצים']];
 const SG_LABEL=Object.fromEntries(SG_CATS);
 let catLoaded=false,catErr='',sgAdmin=false;
 
