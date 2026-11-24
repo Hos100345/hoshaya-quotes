@@ -5,6 +5,7 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const API = "https://api.greeninvoice.co.il/api/v1";
+const AUTH = "https://api.morning.co/idp/v1/oauth/token";
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
@@ -20,16 +21,20 @@ async function morningToken(): Promise<string> {
   // trim: הדבקה בדשבורד מוסיפה לפעמים רווח/שורה ריקה בסוף — Morning מחזיר אז 404
   const id = Deno.env.get("MORNING_ID")?.trim(), secret = Deno.env.get("MORNING_SECRET")?.trim();
   if (!id || !secret) throw Object.assign(new Error("המפתח של Morning עוד לא הוגדר בשרת"), { status: 503 });
-  const r = await fetch(`${API}/account/token`, {
+  // 2026: Morning העבירו את ההתחברות ל-OAuth. /api/v1/account/token מחזיר 404 לכל מפתח.
+  const r = await fetch(AUTH, {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id, secret }), signal: AbortSignal.timeout(15000),
+    body: JSON.stringify({ grant_type: "client_credentials", client_id: id, client_secret: secret }), signal: AbortSignal.timeout(15000),
   });
   const d = await r.json().catch(() => null);
-  if (!d?.token) {
-    console.log("MORNING_TOKEN_FAIL", r.status, d?.errorCode ?? "", d?.errorMessage ?? "");
-    throw Object.assign(new Error((d?.errorMessage ? d.errorMessage + " · " : "") + `התחברות ל-Morning נכשלה (${r.status}${d?.errorCode ? ", קוד " + d.errorCode : ""})`), { status: 502 });
+  const tok = d?.access_token ?? d?.token;
+  if (!tok) {
+    console.log("MORNING_TOKEN_FAIL", r.status, d?.error ?? d?.errorCode ?? "", d?.error_description ?? d?.errorMessage ?? "");
+    const why = d?.error === "invalid_client" ? "המזהה או הסוד לא נכונים (או לא מאותו מפתח)" : (d?.error_description || d?.errorMessage || "");
+    throw Object.assign(new Error((why ? why + " · " : "") + `התחברות ל-Morning נכשלה (${r.status})`), { status: 502 });
   }
-  token = d.token; tokenAt = Date.now();
+  const ttl = Math.max(60, Math.min(3600, Number(d?.expires_in) || 3600));
+  token = tok; tokenAt = Date.now() - (3600 - ttl) * 1000;
   return token!;
 }
 
