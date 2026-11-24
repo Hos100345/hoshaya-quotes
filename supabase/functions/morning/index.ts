@@ -44,13 +44,15 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ error: "method" }, 405);
   try {
-    // מי מחובר? (verify_jwt=true כבר דחה בקשה בלי JWT תקף)
-    const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
-    });
-    const { data: { user } } = await sb.auth.getUser();
-    const admins = (Deno.env.get("ADMIN_EMAILS") ?? "").toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
-    if (!user?.email || !admins.includes(user.email.toLowerCase())) return json({ error: "אין הרשאה" }, 403);
+    // מי מחובר? אותו דפוס כמו site-gallery / manage-subscriber: service_role + getUser(jwt)
+    const jwt = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+    const { data: { user } } = await admin.auth.getUser(jwt).catch(() => ({ data: { user: null } }));
+    const admins = (Deno.env.get("ADMIN_EMAILS") || "hoshaya@gmail.com").toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
+    if (!user?.email || !admins.includes(user.email.toLowerCase())) {
+      console.log("MORNING_FORBIDDEN", user ? "not_admin" : "no_user");
+      return json({ error: user ? "אין הרשאה למייל הזה" : "ההתחברות פגה — התחברו מחדש בלשונית המלאי" }, 403);
+    }
 
     const { action, ...p } = await req.json().catch(() => ({}));
     if (action === "status") {
