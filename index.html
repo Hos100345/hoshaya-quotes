@@ -543,6 +543,7 @@ body{font-family:'Heebo',sans-serif;background:var(--darker);color:var(--text);m
     <div class="fscr fwrap" id="QPKC" style="margin-bottom:8px"></div>
     <input class="inp" id="QPKQ" placeholder="חיפוש — שם פריט או קטגוריה" oninput="pickSearch(this.value)" style="margin-bottom:8px">
     <div id="QPKL" style="overflow-y:auto;flex:1;min-height:0;margin-bottom:10px"></div>
+    <button class="mbt" onclick="qaddCustom(document.getElementById('QPKQ').value.trim())" style="margin-bottom:6px">➕ פריט שלא ברשימה</button>
     <button class="mbt s" onclick="closePick()">סגור</button>
   </div>
 </div>
@@ -1019,7 +1020,7 @@ function priceListText(){
 }
 // השרת מחזיר {name,qty}; המחיר מחושב כאן כי הוא תלוי ב-PL ובמצב התושב
 function quoteToUI(q){
-  return{...q,items:(q.items||[]).map(it=>({id:Date.now()+Math.random(),name:it.name,qty:it.qty||1,price:pfr(it.name)*(it.qty||1)}))};
+  return{...q,items:(q.items||[]).map(it=>{const r={id:Date.now()+Math.random(),name:it.name,qty:it.qty||1};if(!PL[it.name]){r.custom=true;r.unit='';r.store=false;}r.price=rowPrice(r);return r;})};
 }
 // תמונה מהנייד היא 4–8MB ולפעמים HEIC. לזיהוי קטגוריה מספיק 1024px,
 // ומעבר דרך canvas גם מבטיח JPEG — הפורמט היחיד שבטוח מתקבל בשער.
@@ -2079,13 +2080,18 @@ function plOptions(sel){
 // מחיר הפריט אינו תלוי בתושב: ההנחה יורדת מסכום עיצוב האירועים ב-qTotals
 function pfr(n){const p=PL[n];return p?p.b:0;}
 function isStore(n){return !!(PL[n]&&PL[n].c===STORE);}
+// פריט שלא במחירון (custom): שם ומחיר ליחידה שהושעיה מקליד. נחשב "עיצוב אירועים"
+// (מקבל הנחת תושב) אלא אם סומן 🛒 חנות. כל חישוב מחיר שורה עובר דרך unitOf/itemStore.
+function unitOf(it){return it.custom?(+it.unit||0):pfr(it.name);}
+function itemStore(it){return it.custom?!!it.store:isStore(it.name);}
+function rowPrice(it){return Math.round(unitOf(it)*(+it.qty||1)*100)/100;}
 // חישוב אחד לכל הצרכנים — מסך, הודעת וואטסאפ, דרישת תשלום ויומן.
 // קודם כל אחד חישב לעצמו, ותעריף נסיעות או בסיס הנחה שהשתנו פילגו ביניהם.
 // calcTotals טהורה: גם תצוגת הניתוח (rParsed/rParsedRec) קוראת לה, כדי שהסכום
 // שמוצג לפני "החל הצעה" יהיה בדיוק הסכום שיופיע אחריה.
 function calcTotals(items,isLocal,dist,dp){
   let tot=0,ev=0;
-  (items||[]).forEach(it=>{const pr=it.price||0;tot+=pr;if(it.name&&!isStore(it.name))ev+=pr;});
+  (items||[]).forEach(it=>{const pr=it.price||0;tot+=pr;if(it.name&&!itemStore(it))ev+=pr;});
   dist=+dist||0;dp=+dp||0;
   const trv=Math.round(dist*2*TRAVEL_RATE);
   // הנחת תושב חלה על עיצוב אירועים בלבד. הנחה ידנית בלי מצב תושב — על הכול.
@@ -2097,6 +2103,12 @@ function qTotals(){
   return calcTotals(qIt,qLoc,document.getElementById('QDIST')?.value||0,document.getElementById('QDISC')?.value||0);
 }
 function qRowHTML(it){
+  if(it.custom)return `<input type="text" value="${escHtml(it.name||'')}" placeholder="שם הפריט" aria-label="שם פריט שלא במחירון" style="flex:2;min-width:0;background:transparent;border:none;border-bottom:1px dashed var(--border);color:var(--text);font-family:'Heebo',sans-serif;font-size:11px;outline:none;direction:rtl" oninput="qcn(${it.id},this.value)">`
+    +`<input type="number" min="0" step="any" value="${it.unit||''}" placeholder="₪ ליח'" aria-label="מחיר ליחידה" style="width:52px;background:transparent;border:none;border-bottom:1px dashed var(--border);color:var(--gold);text-align:center;font-family:'Heebo',sans-serif;font-size:11px;outline:none" oninput="qcu(${it.id},this.value)">`
+    +`<button onclick="qcs(${it.id})" title="חנות (בלי הנחת תושב)" aria-pressed="${!!it.store}" style="background:none;border:none;cursor:pointer;font-size:12px;opacity:${it.store?1:.35}">🛒</button>`
+    +`<input type="number" min="1" value="${it.qty||1}" aria-label="כמות" style="width:38px;background:transparent;border:none;color:var(--text);text-align:center;font-family:'Heebo',sans-serif;font-size:11px;outline:none" onchange="quq(${it.id},+this.value)">`
+    +`<span id="QP${it.id}" style="color:var(--gold);font-weight:700;font-size:11px;min-width:42px">${it.price?it.price+'₪':''}</span>`
+    +`<button onclick="qrm(${it.id})" style="background:none;border:none;color:var(--pink);cursor:pointer;font-size:13px">✕</button>`;
   return `<select style="flex:2;background:transparent;border:none;color:var(--text);font-family:'Heebo',sans-serif;font-size:11px;outline:none;direction:rtl" onchange="qun(${it.id},this.value)"><option value="">בחר פריט...</option>${plOptions(it.name||'')}</select>`
     +`<input type="number" min="1" value="${it.qty||1}" style="width:38px;background:transparent;border:none;color:var(--text);text-align:center;font-family:'Heebo',sans-serif;font-size:11px;outline:none" onchange="quq(${it.id},+this.value)">`
     +`<span id="QP${it.id}" style="color:var(--gold);font-weight:700;font-size:11px;min-width:42px">${it.price?it.price+'₪':''}</span>`
@@ -2110,6 +2122,12 @@ function qAddRow(it){
   c.appendChild(row);
 }
 function qadd(){const it={id:Date.now(),name:'',qty:1,price:0};qIt.push(it);qAddRow(it);qcalc();}
+function qaddCustom(name){const it={id:Date.now()+Math.random(),custom:true,name:name||'',unit:'',qty:1,price:0,store:false};qIt.push(it);qAddRow(it);closePick();qcalc();
+  setTimeout(()=>{const r=document.getElementById('QR'+it.id);const i=r&&r.querySelector(name?'input[type=number]':'input[type=text]');if(i)i.focus();},50);}
+function qSetP(it){it.price=rowPrice(it);const el=document.getElementById(`QP${it.id}`);if(el)el.textContent=it.price?it.price+'₪':'';}
+function qcn(id,v){const it=qIt.find(i=>i.id===id);if(it){it.name=v.trim();qcalc();}}
+function qcu(id,v){const it=qIt.find(i=>i.id===id);if(it){it.unit=v;qSetP(it);qcalc();}}
+function qcs(id){const it=qIt.find(i=>i.id===id);if(!it)return;it.store=!it.store;const r=document.getElementById('QR'+id);if(r)r.innerHTML=qRowHTML(it);qcalc();}
 // בורר פריטים עם חיפוש: 37 פריטים ברשימה נפתחת אחת הם גלילה, לא בחירה.
 function openPick(){
   qPickQ='';
@@ -2164,8 +2182,8 @@ function pickItem(name){
   closePick();qcalc();
 }
 
-function qun(id,name){const it=qIt.find(i=>i.id===id);if(it){it.name=name;it.price=pfr(name)*it.qty;}const el=document.getElementById(`QP${id}`);if(el)el.textContent=it&&it.price?it.price+'₪':'';qcalc();}
-function quq(id,qty){const it=qIt.find(i=>i.id===id);if(it){it.qty=qty;it.price=pfr(it.name)*qty;}const el=document.getElementById(`QP${id}`);if(el)el.textContent=it&&it.price?it.price+'₪':'';qcalc();}
+function qun(id,name){const it=qIt.find(i=>i.id===id);if(it){it.name=name;it.price=rowPrice(it);}const el=document.getElementById(`QP${id}`);if(el)el.textContent=it&&it.price?it.price+'₪':'';qcalc();}
+function quq(id,qty){const it=qIt.find(i=>i.id===id);if(it){it.qty=qty;it.price=rowPrice(it);}const el=document.getElementById(`QP${id}`);if(el)el.textContent=it&&it.price?it.price+'₪':'';qcalc();}
 function qrm(id){qIt=qIt.filter(i=>i.id!==id);const r=document.getElementById(`QR${id}`);if(r)r.remove();qcalc();}
 function setQLoc(on){
   qLoc=!!on;
@@ -2174,7 +2192,7 @@ function setQLoc(on){
   dot.style.left=qLoc?'auto':'3px';dot.style.right=qLoc?'3px':'auto';
   document.getElementById('QDISC').value=qLoc?LOCAL_PCT:0;
   document.getElementById('QDRTXT').value=qLoc?`הנחת תושב/ת יישוב בית חוגלה (${LOCAL_PCT}% על עיצוב אירועים)`:'';
-  qIt=qIt.map(i=>({...i,price:pfr(i.name)*i.qty}));
+  qIt=qIt.map(i=>({...i,price:rowPrice(i)}));
   qIt.forEach(i=>{const el=document.getElementById(`QP${i.id}`);if(el)el.textContent=i.price?i.price+'₪':'';});
   qcalc();
 }
@@ -2294,7 +2312,7 @@ function rParsed(p){document.getElementById('QPD').style.display='block';let h='
   const unknown=p.items.filter(i=>!PL[i.name]);
   h+='<br>'+p.items.map(i=>PL[i.name]
       ?`• ${i.name} × ${i.qty} — <b style="color:var(--gold)">${i.price}₪</b>`
-      :`• ⚠️ ${i.name} × ${i.qty} — <span style="color:var(--pink)">לא במחירון</span>`).join('<br>');
+      :`• ⚠️ ${i.name} × ${i.qty} — <span style="color:var(--pink)">לא במחירון — ייכנס כפריט חופשי, משלימים מחיר</span>`).join('<br>');
   const tot=parsedTotal(p);
   h+=`<br><br><span style="color:var(--gold);font-weight:700">💰 סה"כ: ${tot}₪</span>`;
   if(unknown.length)h+=`<br><span style="color:var(--pink);font-size:11px">⚠️ ${unknown.length} פריטים לא זוהו במחירון — יש לבחור אותם ידנית</span>`;
@@ -2323,7 +2341,7 @@ function quoteRow(){
     event_date:validDate(d)?d:null,
     is_local:!!qLoc,distance_km:t.dist,travel:t.trv,
     discount_pct:t.dp,discount_amt:t.da,items_total:t.tot,total:t.grand,
-    items:qIt.filter(i=>i.name).map(i=>({name:i.name,qty:i.qty||1,price:i.price||0})),
+    items:qIt.filter(i=>i.name).map(i=>({name:i.name,qty:i.qty||1,price:i.price||0,...(i.custom?{custom:true,unit:+i.unit||0,store:!!i.store}:{})})),
     created_by:APP_SOURCE
   };
 }
