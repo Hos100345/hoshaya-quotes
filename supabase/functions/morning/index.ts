@@ -5,6 +5,7 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const API = "https://api.greeninvoice.co.il/api/v1";
+const AUTH = "https://api.morning.co/idp/v1/oauth/token";
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
@@ -17,15 +18,23 @@ let token: string | null = null, tokenAt = 0;
 async function morningToken(): Promise<string> {
   // הטוקן של Morning תקף כשעה; שומרים 50 דקות בזיכרון של המופע
   if (token && Date.now() - tokenAt < 50 * 60 * 1000) return token;
-  const id = Deno.env.get("MORNING_ID"), secret = Deno.env.get("MORNING_SECRET");
+  // trim: הדבקה בדשבורד מוסיפה לפעמים רווח/שורה ריקה בסוף — Morning מחזיר אז 404
+  const id = Deno.env.get("MORNING_ID")?.trim(), secret = Deno.env.get("MORNING_SECRET")?.trim();
   if (!id || !secret) throw Object.assign(new Error("המפתח של Morning עוד לא הוגדר בשרת"), { status: 503 });
-  const r = await fetch(`${API}/account/token`, {
+  // 2026: Morning העבירו את ההתחברות ל-OAuth. /api/v1/account/token מחזיר 404 לכל מפתח.
+  const r = await fetch(AUTH, {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id, secret }), signal: AbortSignal.timeout(15000),
+    body: JSON.stringify({ grant_type: "client_credentials", client_id: id, client_secret: secret }), signal: AbortSignal.timeout(15000),
   });
   const d = await r.json().catch(() => null);
-  if (!d?.token) throw Object.assign(new Error(d?.errorMessage || `התחברות ל-Morning נכשלה (${r.status})`), { status: 502 });
-  token = d.token; tokenAt = Date.now();
+  const tok = d?.access_token ?? d?.token;
+  if (!tok) {
+    console.log("MORNING_TOKEN_FAIL", r.status, d?.error ?? d?.errorCode ?? "", d?.error_description ?? d?.errorMessage ?? "");
+    const why = d?.error === "invalid_client" ? "המזהה או הסוד לא נכונים (או לא מאותו מפתח)" : (d?.error_description || d?.errorMessage || "");
+    throw Object.assign(new Error((why ? why + " · " : "") + `התחברות ל-Morning נכשלה (${r.status})`), { status: 502 });
+  }
+  const ttl = Math.max(60, Math.min(3600, Number(d?.expires_in) || 3600));
+  token = tok; tokenAt = Date.now() - (3600 - ttl) * 1000;
   return token!;
 }
 
@@ -44,13 +53,15 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ error: "method" }, 405);
   try {
-    // מי מחובר? (verify_jwt=true כבר דחה בקשה בלי JWT תקף)
-    const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
-    });
-    const { data: { user } } = await sb.auth.getUser();
-    const admins = (Deno.env.get("ADMIN_EMAILS") ?? "").toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
-    if (!user?.email || !admins.includes(user.email.toLowerCase())) return json({ error: "אין הרשאה" }, 403);
+    // מי מחובר? אותו דפוס כמו site-gallery / manage-subscriber: service_role + getUser(jwt)
+    const jwt = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+    const { data: { user } } = await admin.auth.getUser(jwt).catch(() => ({ data: { user: null } }));
+    const admins = (Deno.env.get("ADMIN_EMAILS") || "hoshaya@gmail.com").toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
+    if (!user?.email || !admins.includes(user.email.toLowerCase())) {
+      console.log("MORNING_FORBIDDEN", user ? "not_admin" : "no_user");
+      return json({ error: user ? "אין הרשאה למייל הזה" : "ההתחברות פגה — התחברו מחדש בלשונית המלאי" }, 403);
+    }
 
     const { action, ...p } = await req.json().catch(() => ({}));
     if (action === "status") {
